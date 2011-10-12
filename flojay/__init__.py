@@ -28,6 +28,10 @@ class ToplevelState(ParserState):
         self.enter_state(ArrayState)
         self.parser.invoke_handler_for_array_begin()
 
+    def enter_object_state(self):
+        self.enter_state(ObjectState)
+        self.parser.invoke_handler_for_object_begin()
+
     def enter_string_state(self):
         self.enter_state(StringState)
         self.parser.invoke_handler_for_string_begin()
@@ -60,6 +64,8 @@ class ToplevelState(ParserState):
             self.reparse_char(c)
         elif c == '[':
             self.enter_array_state()
+        elif c == '{':
+            self.enter_object_state()
         else:
             raise SyntaxError
 
@@ -89,13 +95,6 @@ class ArrayElementState(ToplevelState):
             self.switch_state(ArrayDelimState)
         else:
             super(self.__class__, self).parse_terminal_character(c)
-
-    # def parse_char(self, c):
-    #     if c == ',':
-    #         raise SyntaxError
-    #     self.enter_state(ToplevelState)
-    #     self.parser.parse_char(c)
-
 
 
 class PairKeyState(ParserState):
@@ -133,8 +132,59 @@ class PairState(ParserState):
 
 
 class ObjectState(ParserState):
-    def handle_begin(self):
-        self.enter_state(PairState)
+    def parse_whitespace(self, c):
+        pass
+
+    def parse_terminal_character(self, c):
+        self.parse_char(c)
+
+    def parse_char(self, c):
+        if c == '}':
+            self.leave_state()
+            self.parser.invoke_handler_for_object_end()
+        else:
+            self.enter_state(ObjectKeyState)
+            self.parser.invoke_handler_for_object_key_begin()
+            self.reparse_char(c)
+
+
+class ObjectKeyState(ParserState):
+    def parse_char(self, c):
+        if c == '"':
+            self.switch_state(ObjectPairDelimState)
+            self.enter_state(StringState)
+            self.parser.invoke_handler_for_string_begin()
+        else:
+            raise SyntaxError
+
+
+class ObjectPairDelimState(ParserState):
+    def parse_terminal_character(self, c):
+        self.parse_char(c)
+
+    def parse_char(self, c):
+        if c != ':':
+            raise SyntaxError
+        self.parser.invoke_handler_for_object_key_end()
+        self.switch_state(ObjectValueState)
+        self.parser.invoke_handler_for_object_value_begin()
+
+
+class ObjectValueState(ToplevelState):
+    def parse_whitespace(self, c):
+        pass
+
+    def parse_terminal_character(self, c):
+        if c == '}':
+            self.parser.invoke_handler_for_object_value_end()
+            self.leave_state()
+            self.reparse_char(c)
+        # elif c == ',':
+        #     self.parser.invoke_handler_for_object_value_end()
+        #     self.switch_state(ObjectKeyState)
+        else:
+            super(self.__class__, self).parse_terminal_character(c)
+
 
 
 class Parser(object):
@@ -186,6 +236,25 @@ class Parser(object):
 
     def invoke_handler_for_array_element_end(self):
         self.event_handler.handle_array_element_end()
+
+    def invoke_handler_for_object_begin(self):
+        self.event_handler.handle_object_begin()
+
+    def invoke_handler_for_object_end(self):
+        self.event_handler.handle_object_end()
+
+    def invoke_handler_for_object_key_begin(self):
+        self.event_handler.handle_object_key_begin()
+
+    def invoke_handler_for_object_key_end(self):
+        self.event_handler.handle_object_key_end()
+
+    def invoke_handler_for_object_value_begin(self):
+        self.event_handler.handle_object_value_begin()
+
+    def invoke_handler_for_object_value_end(self):
+        self.event_handler.handle_object_value_end()
+
 
     def parse(self, json):
         print "Parsing %s" % (json,)
