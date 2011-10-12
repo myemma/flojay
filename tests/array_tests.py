@@ -97,7 +97,8 @@ class ArrayTests(TestCase):
              "handle_array_end"])
 
     def test_syntax_errors(self):
-        for s in ['[,null]', '[null,]', '[null,,null]', '[null}']:
+        for s in ['[,null]', '[null,]', '[null,,null]', '[null}', \
+                      '[null null]']:
             def tst():
                 p = flojay.Parser(self)
                 p.parse(s)
