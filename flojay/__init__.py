@@ -97,40 +97,6 @@ class ArrayElementState(ToplevelState):
             super(self.__class__, self).parse_terminal_character(c)
 
 
-class PairKeyState(ParserState):
-    def parse_terminal_character(self, c):
-        if c != '}':
-            raise SyntaxError
-
-    def parse_char(self, c):
-        if c != '"':
-            raise SyntaxError
-        self.enter_string_state()
-
-    def handle_end(self):
-        self.enter_state(PairDelimState)
-
-
-class PairDelimState(ParserState):
-    def parse_teriminal_character(self, c):
-        self.parse_char(c)
-
-    def parse_char(self, c):
-        if c != ':':
-            raise SyntaxError
-        self.enter_value_state()
-
-
-class PairValueState(ParserState):
-    def handle_begin(self):
-        pass
-
-
-class PairState(ParserState):
-    def handle_begin(self):
-        self.enter_state(PairKeyState)
-
-
 class ObjectState(ParserState):
     def parse_whitespace(self, c):
         pass
@@ -179,12 +145,12 @@ class ObjectValueState(ToplevelState):
             self.parser.invoke_handler_for_object_value_end()
             self.leave_state()
             self.reparse_char(c)
-        # elif c == ',':
-        #     self.parser.invoke_handler_for_object_value_end()
-        #     self.switch_state(ObjectKeyState)
+        elif c == ',':
+            self.parser.invoke_handler_for_object_value_end()
+            self.switch_state(ObjectKeyState)
+            self.parser.invoke_handler_for_object_key_begin()
         else:
             super(self.__class__, self).parse_terminal_character(c)
-
 
 
 class Parser(object):
