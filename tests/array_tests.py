@@ -1,4 +1,5 @@
 import flojay
+from flojay.exception import SyntaxError
 from unittest import TestCase
 from nose.tools import eq_, assert_raises
 
@@ -53,6 +54,40 @@ class ArrayTests(TestCase):
              "handle_number_end",
              "handle_array_element_end",
              "handle_array_end",
+             "handle_array_element_end",
+             "handle_array_element_begin",
+             "handle_number_begin",
+             "handle_number_character",
+             "handle_number_end",
+             "handle_array_element_end",
+             "handle_array_end"])
+
+    def test_empty(self):
+        p = flojay.Parser(self)
+        p.parse('[]')
+        eq_(self.called_methods, ["handle_array_begin", "handle_array_end"])
+
+    def test_one(self):
+        p = flojay.Parser(self)
+        p.parse('[1]')
+        eq_(self.called_methods,
+            ["handle_array_begin",
+             "handle_array_element_begin",
+             "handle_number_begin",
+             "handle_number_character",
+             "handle_number_end",
+             "handle_array_element_end",
+             "handle_array_end"])
+
+    def test_two(self):
+        p = flojay.Parser(self)
+        p.parse('[1,2]')
+        eq_(self.called_methods,
+            ["handle_array_begin",
+             "handle_array_element_begin",
+             "handle_number_begin",
+             "handle_number_character",
+             "handle_number_end",
              "handle_array_element_end",
              "handle_array_element_begin",
              "handle_number_begin",

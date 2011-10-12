@@ -1,4 +1,4 @@
-from flojay.state import ParserState, ValueState
+from flojay.state import ParserState
 from flojay.string_state import StringState
 from flojay.number import NumberState
 from flojay.atom import AtomState
@@ -6,11 +6,27 @@ from flojay.exception import SyntaxError
 import string
 
 
+class ArrayState(ParserState):
+
+    def parse_terminal_character(self, c):
+        self.parse_char(c)
+
+    def parse_char(self, c):
+        if c == ']':
+            self.leave_state()
+            self.parser.invoke_handler_for_array_end()
+        elif c == ',':
+            raise SyntaxError
+        else:
+            self.enter_state(ArrayElementState)
+            self.parser.invoke_handler_for_array_element_begin()
+            self.reparse_char(c)
+
+
 class ToplevelState(ParserState):
     def enter_array_state(self):
         self.enter_state(ArrayState)
         self.parser.invoke_handler_for_array_begin()
-        self.parser.invoke_handler_for_array_element_begin()
 
     def enter_string_state(self):
         self.enter_state(StringState)
@@ -18,13 +34,13 @@ class ToplevelState(ParserState):
 
     def enter_atom_state(self, atom):
         self.enter_state(AtomState, atom)
-        self.parser.invoke_handler_for_atom_begin()    
+        self.parser.invoke_handler_for_atom_begin()
 
     def enter_number_state(self):
         self.enter_state(NumberState)
         self.parser.invoke_handler_for_number_begin()
 
-    def parse_teriminal_char(self, c):
+    def parse_terminal_character(self, c):
         raise SyntaxError
 
     def parse_char(self, c):
@@ -32,33 +48,54 @@ class ToplevelState(ParserState):
             self.enter_string_state()
         elif c in string.digits + '-':
             self.enter_number_state()
-            self.parser.parse_char(c)
+            self.reparse_char(c)
         elif c == 't':
             self.enter_atom_state('true')
-            self.parser.parse_char(c)
+            self.reparse_char(c)
         elif c == 'f':
             self.enter_atom_state('false')
-            self.parser.parse_char(c)
+            self.reparse_char(c)
         elif c == 'n':
             self.enter_atom_state('null')
-            self.parser.parse_char(c)
+            self.reparse_char(c)
         elif c == '[':
             self.enter_array_state()
         else:
             raise SyntaxError
 
 
-class ArrayState(ToplevelState):
+class ArrayDelimState(ParserState):
+
     def parse_terminal_character(self, c):
-        if c == ',':
-            self.parser.invoke_handler_for_array_element_end()
-            self.parser.invoke_handler_for_array_element_begin()
-        elif c == ']':
-            self.leave_state()
-            self.parser.invoke_handler_for_array_element_end()
-            self.parser.invoke_handler_for_array_end()
-        else:
+        self.parse_char(c)
+
+    def parse_char(self, c):
+        if c in ',]':
             raise SyntaxError
+        self.switch_state(ArrayElementState)
+        self.parser.invoke_handler_for_array_element_begin()
+        self.reparse_char(c)
+
+
+class ArrayElementState(ToplevelState):
+
+    def parse_terminal_character(self, c):
+        if c == ']':
+            self.parser.invoke_handler_for_array_element_end()
+            self.leave_state()
+            self.reparse_char(c)
+        elif c == ',':
+            self.parser.invoke_handler_for_array_element_end()
+            self.switch_state(ArrayDelimState)
+        else:
+            super(self.__class__, self).parse_terminal_character(c)
+
+    # def parse_char(self, c):
+    #     if c == ',':
+    #         raise SyntaxError
+    #     self.enter_state(ToplevelState)
+    #     self.parser.parse_char(c)
+
 
 
 class PairKeyState(ParserState):
@@ -89,14 +126,15 @@ class PairValueState(ParserState):
     def handle_begin(self):
         pass
 
+
 class PairState(ParserState):
     def handle_begin(self):
         self.enter_state(PairKeyState)
 
+
 class ObjectState(ParserState):
     def handle_begin(self):
         self.enter_state(PairState)
-
 
 
 class Parser(object):
