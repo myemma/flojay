@@ -11,6 +11,9 @@ class ArrayState(ParserState):
     def parse_terminal_character(self, c):
         self.parse_char(c)
 
+    def parse_whitespace(self, c):
+        pass
+
     def parse_char(self, c):
         if c == ']':
             self.leave_state()
@@ -84,6 +87,9 @@ class ArrayDelimState(ParserState):
 
 
 class ArrayElementState(ToplevelState):
+
+    def parse_whitespace(self, c):
+        self.parse_terminal_character(c)
 
     def parse_terminal_character(self, c):
         if c == ']':

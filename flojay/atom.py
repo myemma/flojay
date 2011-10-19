@@ -12,6 +12,9 @@ class AtomState(ValueState):
     def invoke_end_handler(self):
         self.parser.invoke_handler_for_atom_end()
 
+    def parse_whitespace(self, c):
+        self.parse_terminal_character(c)
+
     def parse_char(self, c):
         if c != self.atom[self.pointer]:
             raise SyntaxError
