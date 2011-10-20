@@ -295,7 +295,6 @@ class MarshallEventHandler(object):
         pass
 
     def handle_array_element_end(self):
-        print "Array elt end. Adding %s to %s" % (self.current_thing, self.current)
         self.current.append(self.current_thing)
 
     def handle_string_begin(self):
