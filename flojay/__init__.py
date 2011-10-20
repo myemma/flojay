@@ -78,6 +78,9 @@ class ArrayDelimState(ParserState):
     def parse_terminal_character(self, c):
         self.parse_char(c)
 
+    def parse_whitespace(self, c):
+        pass
+
     def parse_char(self, c):
         if c in ',]':
             raise SyntaxError
@@ -248,12 +251,10 @@ class Parser(object):
         self.event_handler.handle_object_value_end()
 
     def parse(self, json):
-        print "Parsing %s" % (json,)
         for c in json:
             self.parse_char(c)
 
     def parse_char(self, c):
-        print "Parsing: '%s' with state %s" % (c, self.states[-1])
         state = self.states[-1]
         if c in string.whitespace:
             state.parse_whitespace(c)
@@ -269,3 +270,71 @@ class Parser(object):
     def leave_state(self):
         state = self.states.pop()
         state.handle_end()
+
+
+class MarshallEventHandler(object):
+    def __init__(self):
+        self.parent = None
+        self.root = None
+        self.current = self.parent
+
+    def handle_array_begin(self):
+        self.parent = self.current
+        self.current = []
+        if not self.root:
+            self.root = self.current
+
+    def handle_array_end(self):
+        print "Array end. Adding %s to %s" % (self.current, self.parent)
+        # if self.parent:
+        #     self.parent.append(self.current)
+        self.current_thing = self.current
+        self.current = self.parent
+
+    def handle_array_element_begin(self):
+        pass
+
+    def handle_array_element_end(self):
+        print "Array elt end. Adding %s to %s" % (self.current_thing, self.current)
+        self.current.append(self.current_thing)
+
+    def handle_string_begin(self):
+        self.char_buffer = ""
+
+    def handle_string_character(self, c):
+        self.char_buffer += c
+
+    def handle_string_end(self):
+        self.current_thing = self.char_buffer
+
+    def handle_number_begin(self):
+        self.char_buffer = ""
+
+    def handle_number_character(self, c):
+        self.char_buffer += c
+
+    def handle_number_end(self):
+        self.current_thing = float(self.char_buffer)
+
+    def handle_atom_begin(self):
+        self.char_buffer = ""
+
+    def handle_atom_character(self, c):
+        self.char_buffer += c
+
+    def handle_atom_end(self):
+        if self.char_buffer == 'true':
+            self.current_thing = True
+        elif self.char_buffer == 'false':
+            self.current_thing = False
+        elif self.char_buffer == 'null':
+            self.current_thing = None
+        else:
+            raise Exception("Invalid atom")
+
+
+def marshal(json):
+    handler = MarshallEventHandler()
+    p = Parser(handler)
+    p.parse(json)
+    return handler.root
