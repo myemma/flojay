@@ -274,28 +274,23 @@ class Parser(object):
 
 class MarshallEventHandler(object):
     def __init__(self):
-        self.parent = None
-        self.root = None
-        self.current = self.parent
+        self.container = None
+        self.parents = []
 
     def handle_array_begin(self):
-        self.parent = self.current
-        self.current = []
-        if not self.root:
-            self.root = self.current
+        self.parents.append(self.container)
+        self.container = []
 
     def handle_array_end(self):
-        print "Array end. Adding %s to %s" % (self.current, self.parent)
-        # if self.parent:
-        #     self.parent.append(self.current)
-        self.current_thing = self.current
-        self.current = self.parent
+        self.current_thing = self.container
+        self.container = self.parents.pop()
 
     def handle_array_element_begin(self):
         pass
 
     def handle_array_element_end(self):
-        self.current.append(self.current_thing)
+        print "The container is %s and I'm putting %s on it" % (self.container, self.current_thing)
+        self.container.append(self.current_thing)
 
     def handle_string_begin(self):
         self.char_buffer = ""
@@ -331,9 +326,30 @@ class MarshallEventHandler(object):
         else:
             raise Exception("Invalid atom")
 
+    def handle_object_begin(self):
+        self.container = {}
+        self.parents.append(self.container)
+
+    def handle_object_key_begin(self):
+        pass
+
+    def handle_object_value_begin(self):
+        pass
+
+    def handle_object_key_end(self):
+        self.key = self.current_thing
+
+    def handle_object_value_end(self):
+        print "Ok the object is ending and the container is %s" % (self.container,)
+        self.container[self.key] = self.current_thing
+
+    def handle_object_end(self):
+        self.current_thing = self.container
+        self.container = self.parents.pop()
+
 
 def marshal(json):
     handler = MarshallEventHandler()
     p = Parser(handler)
     p.parse(json)
-    return handler.root
+    return handler.current_thing
