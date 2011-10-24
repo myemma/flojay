@@ -36,3 +36,10 @@ class StringTests(TestCase):
         eq_(self.buf, "test")
         eq_(self.begin, 1)
         eq_(self.end, 0)
+
+    def test_unicode(self):
+        p = flojay.Parser(self)
+        s = '"' + "".join(('\u%04x' % (ord(c)) for c in ('abcde'))) + '"'
+        print s
+        p.parse(s)
+        eq_(self.buf, "abcde")

@@ -276,6 +276,7 @@ class MarshallEventHandler(object):
     def __init__(self):
         self.container = None
         self.parents = []
+        self.keys = []
 
     def handle_array_begin(self):
         self.parents.append(self.container)
@@ -289,46 +290,45 @@ class MarshallEventHandler(object):
         pass
 
     def handle_array_element_end(self):
-        print "The container is %s and I'm putting %s on it" % (self.container, self.current_thing)
         self.container.append(self.current_thing)
 
     def handle_string_begin(self):
-        self.char_buffer = ""
+        self.current_thing = ""
 
     def handle_string_character(self, c):
-        self.char_buffer += c
+        self.current_thing += c
 
     def handle_string_end(self):
-        self.current_thing = self.char_buffer
+        pass
 
     def handle_number_begin(self):
-        self.char_buffer = ""
+        self.current_thing = ""
 
     def handle_number_character(self, c):
-        self.char_buffer += c
+        self.current_thing += c
 
     def handle_number_end(self):
-        self.current_thing = float(self.char_buffer)
+        self.current_thing = float(self.current_thing)
 
     def handle_atom_begin(self):
-        self.char_buffer = ""
+        self.current_thing = ""
 
     def handle_atom_character(self, c):
-        self.char_buffer += c
+        self.current_thing += c
 
     def handle_atom_end(self):
-        if self.char_buffer == 'true':
+        if self.current_thing == 'true':
             self.current_thing = True
-        elif self.char_buffer == 'false':
+        elif self.current_thing == 'false':
             self.current_thing = False
-        elif self.char_buffer == 'null':
+        elif self.current_thing == 'null':
             self.current_thing = None
         else:
             raise Exception("Invalid atom")
 
     def handle_object_begin(self):
-        self.container = {}
         self.parents.append(self.container)
+        self.container = {}
 
     def handle_object_key_begin(self):
         pass
@@ -337,11 +337,10 @@ class MarshallEventHandler(object):
         pass
 
     def handle_object_key_end(self):
-        self.key = self.current_thing
+        self.keys.append(self.current_thing)
 
     def handle_object_value_end(self):
-        print "Ok the object is ending and the container is %s" % (self.container,)
-        self.container[self.key] = self.current_thing
+        self.container[self.keys.pop()] = self.current_thing
 
     def handle_object_end(self):
         self.current_thing = self.container
