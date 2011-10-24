@@ -25,10 +25,7 @@ class UnicodeCodepointState(ParserState):
         if len(self.buf) == 4:
             print self.buf, int(self.buf), unichr(int(self.buf, 16))
             self.parser.invoke_handler_for_string_character(unichr(int(self.buf, 16)))
-            # Leaving state twice to pop out of (a) unicode state and (b) escape character state
             self.leave_state()
-            self.leave_state() 
-
 
 
 class InvalidEscapeCharacter(Exception):
@@ -46,7 +43,7 @@ class EscapeCharState(ParserState):
             self.parser.invoke_handler_for_string_character(escape_char)
             self.leave_state()
         elif c == 'u':
-            self.enter_state(UnicodeCodepointState)
+            self.switch_state(UnicodeCodepointState)
         else:
             raise InvalidEscapeCharacter
 
