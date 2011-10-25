@@ -1,0 +1,29 @@
+import flojay
+from unittest import TestCase
+from nose.tools import eq_
+
+
+class MarshalTests(TestCase):
+
+    def test_marshal_empty(self):
+        eq_([], flojay.marshal("[]"))
+        eq_({}, flojay.marshal("{}"))
+
+    def test_marshal_arrays_and_stuff(self):
+        eq_(['a', 1, True], flojay.marshal('["a", 1, true]'))
+        eq_(['a', 1, ['b', 2]], flojay.marshal('["a", 1, ["b", 2]]'))
+
+    def test_marshal_returns_a_string_if_there_is_no_toplevel_container(self):
+        eq_('a', flojay.marshal('"a"'))
+        eq_('1.5', flojay.marshal('1.5'))
+        eq_('null', flojay.marshal("null"))
+
+    def test_marshal_object(self):
+        eq_({'foo': 1}, flojay.marshal('{"foo": 1}'))
+        eq_({'foo': 1, 'bar': 2}, flojay.marshal('{"foo": 1, "bar": 2}'))
+        eq_({'foo': ["a", 1]}, flojay.marshal('{"foo": ["a", 1]}'))
+        eq_({'foo': ["a", {'bar': {'bazz': 'see it\'s a nested dictionary'}}]},
+            flojay.marshal('{"foo": ["a", {"bar": {"bazz": "see it\'s a nested dictionary"}}]}'))
+
+    def test_exp(self):
+        eq_([1e+27], flojay.marshal('[1e27]'))
