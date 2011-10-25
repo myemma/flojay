@@ -27,3 +27,39 @@ class MarshalTests(TestCase):
 
     def test_exp(self):
         eq_([1e+27], flojay.marshal('[1e27]'))
+
+    def test_stress(self):
+        eq_(
+            {"pushed_at": 1316639683.0,
+             "args": [1365900, 2320,
+                      [{"fields": {"first_name": "First Name"}, "email": "Email"},
+                       {"fields": {"first_name": "Q."}, "email": "qa_tester8@rocketmail.com"},
+                       {"fields": {"first_name": "Q."}, "email": "qa_tester5@rocketmail.com"},
+                       {"fields": {"first_name": "Q."}, "email": "qa_tester4@rocketmail.com"},
+                       {"fields": {"first_name": "Q."}, "email": "qa_tester1@rocketmail.com"},
+                       {"fields": {"first_name": "Q."}, "email": "qa_tester7@rocketmail.com"},
+                       {"fields": {"first_name": "Q."}, "email": "qa_tester6@rocketmail.com"},
+                       {"fields": {"first_name": "Q."}, "email": "qa_tester3@rocketmail.com"},
+                       {"fields": {"first_name": "Q."}, "email": "qa_tester2@rocketmail.com"}],
+                      False, 
+                      ["42178"]],
+             "target_spec": "audience.jobs:import_members",
+             "kwargs": {}},
+            flojay.marshal(
+            """
+            {"pushed_at": 1316639683.0,
+             "args": [1365900, 2320,
+                 [{"fields": {"first_name": "First Name"}, "email": "Email"},
+                  {"fields": {"first_name": "Q."}, "email": "qa_tester8@rocketmail.com"},
+                  {"fields": {"first_name": "Q."}, "email": "qa_tester5@rocketmail.com"},
+                  {"fields": {"first_name": "Q."}, "email": "qa_tester4@rocketmail.com"},
+                  {"fields": {"first_name": "Q."}, "email": "qa_tester1@rocketmail.com"},
+                  {"fields": {"first_name": "Q."}, "email": "qa_tester7@rocketmail.com"},
+                  {"fields": {"first_name": "Q."}, "email": "qa_tester6@rocketmail.com"},
+                  {"fields": {"first_name": "Q."}, "email": "qa_tester3@rocketmail.com"},
+                  {"fields": {"first_name": "Q."}, "email": "qa_tester2@rocketmail.com"}],
+                 false, ["42178"]],
+             "target_spec": "audience.jobs:import_members",
+             "kwargs": {}}
+            """))
+

@@ -21,9 +21,7 @@ class UnicodeCodepointState(ParserState):
         if not c in string.hexdigits:
             raise SyntaxError
         self.buf += c
-        print self.buf
         if len(self.buf) == 4:
-            print self.buf, int(self.buf), unichr(int(self.buf, 16))
             self.parser.invoke_handler_for_string_character(unichr(int(self.buf, 16)))
             self.leave_state()
 
@@ -37,7 +35,6 @@ class EscapeCharState(ParserState):
                      'r': "\r", '/': '/', '"': '"', '\\': '\\'}
 
     def parse_char(self, c):
-        print "esc: %s" % (c,)
         if c in self.escape_chars:
             escape_char = self.escape_chars[c]
             self.parser.invoke_handler_for_string_character(escape_char)
@@ -60,7 +57,6 @@ class StringState(ParserState):
         self.parse_char(c)
 
     def parse_char(self, c):
-        print c
         if c == "\\":
             self.enter_escape_char_state()
         elif c == '"':

@@ -47,6 +47,9 @@ class ToplevelState(ParserState):
         self.enter_state(NumberState)
         self.parser.invoke_handler_for_number_begin()
 
+    def parse_whitespace(self, c):
+        pass
+
     def parse_terminal_character(self, c):
         raise SyntaxError
 
