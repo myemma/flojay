@@ -186,7 +186,8 @@ class ObjectValueState(ToplevelState):
 
 
 class Parser(object):
-    terminal_characters = ']},'
+    terminal_characters = set(']},')
+    whitespace = set(string.whitespace)
 
     def __init__(self, event_handler):
         self.event_handler = event_handler
@@ -259,12 +260,12 @@ class Parser(object):
 
     def parse_char(self, c):
         state = self.states[-1]
-        if c in string.whitespace:
+        if c in self.whitespace:
             state.parse_whitespace(c)
         elif c in self.terminal_characters:
             state.parse_terminal_character(c)
         else:
-            self.states[-1].parse_char(c)
+            state.parse_char(c)
 
     def enter_state(self, state):
         self.states.append(state)

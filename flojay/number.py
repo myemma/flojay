@@ -34,7 +34,6 @@ class NumberState(ValueState):
 
 class DecimalState(NumberState):
     def parse_char(self, c):
-        print c
         if c not in string.digits:
             raise SyntaxError
         self.parser.invoke_handler_for_number_character(c)

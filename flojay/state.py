@@ -12,9 +12,6 @@ class ParserState(object):
     def handle_end(self):
         pass
 
-    def parse_whitespace_character(self, c):
-        self.parser.invoke_handler_for_whitespace_character(c)
-
     def switch_state(self, state_class, *args):
         self.leave_state()
         self.enter_state(state_class, *args)
@@ -29,12 +26,10 @@ class ParserState(object):
     def reparse_char(self, c):
         self.parser.parse_char(c)
 
+
 class ValueState(ParserState):
 
     def parse_terminal_character(self, c):
         self.leave_state()
         self.invoke_end_handler()
         self.parser.parse_char(c)
-
-    def parse_whitespace_character(self, c):
-        self.parse_teriminal_character(c)

@@ -14,7 +14,7 @@ class UnicodeCodepointState(ParserState):
     def parse_terminal_character(self, c):
         raise SyntaxError
 
-    def parse_whitespace_character(self, c):
+    def parse_whitespace(self, c):
         raise SyntaxError
 
     def parse_char(self, c):
