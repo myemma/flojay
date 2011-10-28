@@ -16,7 +16,7 @@ class MarshalTests(TestCase):
     def test_marshal_returns_a_string_if_there_is_no_toplevel_container(self):
         eq_('a', flojay.marshal('"a"'))
         eq_('1.5', flojay.marshal('1.5'))
-        eq_('null', flojay.marshal("null"))
+        eq_(True, flojay.marshal("true"))
 
     def test_marshal_object(self):
         eq_({'foo': 1}, flojay.marshal('{"foo": 1}'))

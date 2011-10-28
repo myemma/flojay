@@ -23,11 +23,34 @@ class NumberTests(TestCase):
         p = flojay.Parser(self)
         p.parse("123")
         eq_(self.buf, "123")
+        self.buf = ''
+        p.parse("1")
+        p.parse("23")
+        eq_(self.buf, "123")
 
     def test_negative(self):
         p = flojay.Parser(self)
         p.parse("-123")
         eq_(self.buf, "-123")
+        self.buf = ''
+        p = flojay.Parser(self)
+        p.parse('-')
+        p.parse('123')
+        eq_(self.buf, '-123')
+
+    def test_negative_only_allowed_at_the_beginning(self):
+        def syntax_error():
+            p = flojay.Parser(self)
+            p.parse("-")
+            p.parse("-123")
+
+        assert_raises(SyntaxError, syntax_error)
+
+        def tst():
+            p = flojay.Parser(self)
+            p.parse("-1-1")
+
+        assert_raises(SyntaxError, tst)
 
     def test_decimal(self):
         p = flojay.Parser(self)
@@ -52,13 +75,6 @@ class NumberTests(TestCase):
 
         assert_raises(SyntaxError, tst1)
         assert_raises(SyntaxError, tst2)
-
-    def test_bad_negatives(self):
-        def tst():
-            p = flojay.Parser(self)
-            p.parse("-1-1")
-
-        assert_raises(SyntaxError, tst)
 
     def test_bad_exp(self):
         def tst():

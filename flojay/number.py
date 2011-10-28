@@ -2,51 +2,88 @@ from flojay.state import ValueState
 from flojay.exception import SyntaxError
 import string
 
+class BaseNumberState(ValueState):
+    def invoke_end_handler(self):
+        self.parser.invoke_handler_for_number_end()
 
-class NumberState(ValueState):
-    number_chars = string.digits
+    number_chars = set(string.digits)
+    terminal_characters = set(']},' + string.whitespace)
+
+    def parse_buf(self, buf):
+        num = ''
+        while(buf):
+            if buf.peek() in self.terminal_characters:
+                self.parser.invoke_handler_for_number_character(num)
+                self.invoke_end_handler()
+                self.leave_state()
+                return
+
+            c = buf.take()
+            if c not in self.number_chars:
+                raise SyntaxError
+            num += c
+        self.parser.invoke_handler_for_number_character(num)
+
+
+class NumberState(BaseNumberState):
 
     def setUp(self):
         self.count = 0
 
-    def invoke_end_handler(self):
-        self.parser.invoke_handler_for_number_end()
-
     def enter_decimal_state(self):
-        self.enter_state(DecimalState)
+        self.switch_state(DecimalState)
 
     def enter_exp_state(self):
-        self.enter_state(ExpState)
+        self.switch_state(ExpState)
 
-    def parse_char(self, c):
-        if c == '.':
-            self.parser.invoke_handler_for_number_character(c)
-            self.enter_decimal_state()
-        elif c == 'e' or c == 'E':
-            self.parser.invoke_handler_for_number_character(c)
-            self.enter_exp_state()
-        elif c in self.number_chars or (c == '-' and self.count == 0):
-            self.parser.invoke_handler_for_number_character(c)
+    def parse_buf(self, buf):
+        num = ''
+        while(buf):
+            if buf.peek() in self.terminal_characters:
+                self.parser.invoke_handler_for_number_character(num)
+                self.invoke_end_handler()
+                self.leave_state()
+                return
+
+            c = buf.take()
             self.count += 1
-        else:
-            raise SyntaxError
+            num += c
+
+            if c == '.':
+                self.parser.invoke_handler_for_number_character(num)
+                self.enter_decimal_state()
+                return
+            elif c == 'e' or c == 'E':
+                self.parser.invoke_handler_for_number_character(num)
+                self.enter_exp_state()
+                return
+            elif c not in self.number_chars and not (c == '-' and self.count == 1):
+                raise SyntaxError
+            
+        self.parser.invoke_handler_for_number_character(num)
 
 
-class DecimalState(NumberState):
-    def parse_char(self, c):
-        if c not in string.digits:
-            raise SyntaxError
-        self.parser.invoke_handler_for_number_character(c)
+class DecimalState(BaseNumberState): pass
 
 
 class ExpState(NumberState):
+    
     def setUp(self):
-        self.character_count = 0
+        self.count = 0
 
-    def parse_char(self, c):
-        if (self.character_count == 0 and c in ['-', '+']) or \
-                c in string.digits:
-            self.parser.invoke_handler_for_number_character(c)
-            self.character_count += 1
-        else:
-            raise SyntaxError
+    def parse_buf(self, buf):
+        num = ''
+        while buf:
+            if buf.peek() in self.terminal_characters:
+                self.parser.invoke_handler_for_number_character(num)
+                self.invoke_end_handler()
+                self.leave_state()
+                return
+
+            c = buf.take()
+            if (self.count == 0 and c in ['-','+']) or c in self.number_chars:
+                self.count += 1
+                num += c
+            else:
+                raise SyntaxError
+        self.parser.invoke_handler_for_number_character(num)

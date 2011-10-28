@@ -39,3 +39,9 @@ class AtomTests(TestCase):
         p = flojay.Parser(self)
         p.parse("null")
         eq_(self.buf, "null")
+
+    def test_partial(self):
+        p = flojay.Parser(self)
+        p.parse("nu")
+        p.parse("ll")
+        eq_(self.buf, "null")

@@ -64,7 +64,7 @@ class ObjectTest(TestCase):
              "handle_object_end"])
 
     def test_syntax_errors(self):
-        for s in ['{a:1}', '{"a":}', '{"a" 1}', '{"a": 1,}', '{"a": 1, 2}']:
+        for s in ['{a:1}', '{"a":}', '{"a" 1}', '{"a": 1,}', '{"a": 1, 2}', '{"a": 1 "b": 2}']:
             def tst():
                 p = flojay.Parser(self)
                 p.parse(s)

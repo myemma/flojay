@@ -29,7 +29,10 @@ class ParserState(object):
 
 class ValueState(ParserState):
 
-    def parse_terminal_character(self, c):
+    def exit_state(self):
         self.leave_state()
         self.invoke_end_handler()
+
+    def parse_terminal_character(self, c):
+        self.exit_state()
         self.parser.parse_char(c)

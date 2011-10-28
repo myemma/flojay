@@ -37,9 +37,19 @@ class StringTests(TestCase):
         eq_(self.begin, 1)
         eq_(self.end, 0)
 
+    def test_string_segments(self):
+        p = flojay.Parser(self)
+        p.parse('"test ')
+        p.parse('parsing of ')
+        p.parse('a string that is all busted out into chunks."')
+        eq_(self.buf, "test parsing of a string that is all busted out into chunks.")
+
     def test_unicode(self):
         p = flojay.Parser(self)
         s = '"' + "".join(('\u%04x' % (ord(c)) for c in ('abcde'))) + '"'
-        print s
         p.parse(s)
+        eq_(self.buf, "abcde")
+        self.buf = ''
+        p.parse(s[0:2])
+        p.parse(s[2:-1])
         eq_(self.buf, "abcde")

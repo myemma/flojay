@@ -22,7 +22,6 @@ class ArrayTests(TestCase):
              "handle_array_element_begin",
              "handle_string_begin",
              "handle_string_character",
-             "handle_string_character",
              "handle_string_end",
              "handle_array_element_end",
              "handle_array_element_begin",
@@ -32,9 +31,6 @@ class ArrayTests(TestCase):
              "handle_array_element_end",
              "handle_array_element_begin",
              "handle_atom_begin",
-             "handle_atom_character",
-             "handle_atom_character",
-             "handle_atom_character",
              "handle_atom_character",
              "handle_atom_end",
              "handle_array_element_end",
@@ -101,5 +97,6 @@ class ArrayTests(TestCase):
                   '[null null]']:
             def tst():
                 p = flojay.Parser(self)
+                print "Trying " + s
                 p.parse(s)
             assert_raises(SyntaxError, tst)

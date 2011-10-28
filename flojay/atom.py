@@ -8,6 +8,15 @@ class AtomState(ValueState):
     def setUp(self, atom):
         self.pointer = 0
         self.atom = atom
+        self.partial = ''
+
+    def parse_buf(self, buf):
+        self.partial += buf.take(len(self.atom) - len(self.partial))
+        if self.partial == self.atom:
+            self.parser.invoke_handler_for_atom_character(self.partial)
+            self.exit_state()
+        if self.partial != self.atom[0:len(self.partial)]:
+            raise SyntaxError
 
     def invoke_end_handler(self):
         self.parser.invoke_handler_for_atom_end()

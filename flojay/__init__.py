@@ -3,30 +3,13 @@ from flojay.string_state import StringState
 from flojay.number import NumberState
 from flojay.atom import AtomState
 from flojay.exception import SyntaxError
+from flojay.state import ParserState
 import string
 
-
-class ArrayState(ParserState):
-
-    def parse_terminal_character(self, c):
-        self.parse_char(c)
-
-    def parse_whitespace(self, c):
-        pass
-
-    def parse_char(self, c):
-        if c == ']':
-            self.leave_state()
-            self.parser.invoke_handler_for_array_end()
-        elif c == ',':
-            raise SyntaxError
-        else:
-            self.enter_state(ArrayElementState)
-            self.parser.invoke_handler_for_array_element_begin()
-            self.reparse_char(c)
-
-
 class ToplevelState(ParserState):
+
+    number_chars = set(string.digits + '-')
+
     def enter_array_state(self):
         self.enter_state(ArrayState)
         self.parser.invoke_handler_for_array_begin()
@@ -47,93 +30,97 @@ class ToplevelState(ParserState):
         self.enter_state(NumberState)
         self.parser.invoke_handler_for_number_begin()
 
-    def parse_whitespace(self, c):
-        pass
-
-    def parse_terminal_character(self, c):
-        raise SyntaxError
-
-    def parse_char(self, c):
+    def parse_buf(self, buf):
+        buf.skip_whitespace()
+        if not buf:
+            return
+        c = buf.peek()
         if c == '"':
+            buf.take()
             self.enter_string_state()
-        elif c in string.digits + '-':
+        elif c in self.number_chars:
             self.enter_number_state()
-            self.reparse_char(c)
         elif c == 't':
             self.enter_atom_state('true')
-            self.reparse_char(c)
         elif c == 'f':
             self.enter_atom_state('false')
-            self.reparse_char(c)
         elif c == 'n':
             self.enter_atom_state('null')
-            self.reparse_char(c)
         elif c == '[':
+            buf.take()
             self.enter_array_state()
         elif c == '{':
+            buf.take()
             self.enter_object_state()
         else:
             raise SyntaxError
 
 
-class ArrayDelimState(ParserState):
+class ArrayState(ParserState):
 
-    def parse_terminal_character(self, c):
-        self.parse_char(c)
+    """
+    Okay so the thing is we chomp the whitespace 
+    """
 
-    def parse_whitespace(self, c):
-        pass
-
-    def parse_char(self, c):
-        if c in ',]':
+    def parse_buf(self, buf):
+        buf.skip_whitespace()
+        c = buf.peek()
+        if c == ']':
+            buf.take()
+            self.leave_state()
+            self.parser.invoke_handler_for_array_end()
+        elif c == ',':
             raise SyntaxError
-        self.switch_state(ArrayElementState)
+        else:
+            self.enter_state(ArrayDelimState)
+
+
+class ArrayDelimState(ToplevelState):
+
+    def parse_buf(self, buf):
+        c = buf.peek()
+        if c == ',':
+            raise SyntaxError
         self.parser.invoke_handler_for_array_element_begin()
-        self.reparse_char(c)
+        self.switch_state(ArrayElementState)
+        super(self.__class__, self).parse_buf(buf)
 
 
-class ArrayElementState(ToplevelState):
+class ArrayElementState(ParserState):
 
-    def parse_whitespace(self, c):
-        self.parse_terminal_character(c)
-
-    def parse_terminal_character(self, c):
+    def parse_buf(self, buf):
+        buf.skip_whitespace()
+        c = buf.peek()
         if c == ']':
             self.parser.invoke_handler_for_array_element_end()
             self.leave_state()
-            self.reparse_char(c)
         elif c == ',':
             self.parser.invoke_handler_for_array_element_end()
+            buf.take()
             self.switch_state(ArrayDelimState)
         else:
-            super(self.__class__, self).parse_terminal_character(c)
+            raise SyntaxError
 
 
 class ObjectState(ParserState):
-    def parse_whitespace(self, c):
-        pass
 
-    def parse_terminal_character(self, c):
-        self.parse_char(c)
-
-    def parse_char(self, c):
+    def parse_buf(self, buf):
+        buf.skip_whitespace()
+        c = buf.peek()
         if c == '}':
+            buf.take()
             self.leave_state()
             self.parser.invoke_handler_for_object_end()
         else:
             self.enter_state(ObjectKeyState)
             self.parser.invoke_handler_for_object_key_begin()
-            self.reparse_char(c)
 
 
 class ObjectKeyState(ParserState):
-    def parse_whitespace(self, c):
-        pass
 
-    def parse_terminal_character(self, c):
-        self.parse_char(c)
-
-    def parse_char(self, c):
+    def parse_buf(self, buf):
+        buf.skip_whitespace()
+        c = buf.take()
         if c == '"':
             self.switch_state(ObjectPairDelimState)
             self.enter_state(StringState)
@@ -143,13 +130,9 @@ class ObjectKeyState(ParserState):
 
 
 class ObjectPairDelimState(ParserState):
-    def parse_whitespace(self, c):
-        pass
 
-    def parse_terminal_character(self, c):
-        self.parse_char(c)
-
-    def parse_char(self, c):
+    def parse_buf(self, buf):
+        c = buf.take()
         if c != ':':
             raise SyntaxError
         self.parser.invoke_handler_for_object_key_end()
@@ -158,35 +141,54 @@ class ObjectPairDelimState(ParserState):
 
 
 class ObjectValuePrelimState(ParserState):
-    def parse_whitespace(self, c):
-        pass
-
-    def parse_char(self, c):
-        if c in ',}':
+    def parse_buf(self, buf):
+        if buf.peek() in ',}':
             raise SyntaxError
         self.switch_state(ObjectValueState)
-        self.reparse_char(c)
-
-    def parse_terminal_character(self, c):
-        self.parse_char(c)
 
 
 class ObjectValueState(ToplevelState):
-    def parse_terminal_character(self, c):
+    def parse_buf(self, buf):
+        c = buf.peek()
         if c == '}':
             self.parser.invoke_handler_for_object_value_end()
             self.leave_state()
-            self.reparse_char(c)
         elif c == ',':
+            buf.take()
             self.parser.invoke_handler_for_object_value_end()
             self.switch_state(ObjectKeyState)
             self.parser.invoke_handler_for_object_key_begin()
         else:
-            super(self.__class__, self).parse_terminal_character(c)
+            super(self.__class__, self).parse_buf(buf)
+
+class Buffer(object):
+    def __init__(self, string):
+        self.pointer = 0
+        self.buf = string
+    
+    def __nonzero__(self):
+        return True if self.pointer < len(self.buf) else False
+
+    def peek(self):
+        return self.buf[self.pointer]
+
+    def take(self, n = 1):
+        value = self.buf[self.pointer:self.pointer+n]
+        self.pointer += n
+        return value
+
+    whitespace = set(string.whitespace)
+
+    def skip_whitespace(self):
+        ptr = self.pointer
+        buf = self.buf
+        whitespace = self.whitespace
+        while ptr < len(buf) and buf[ptr] in whitespace:
+            ptr += 1
+        self.pointer = ptr
 
 
 class Parser(object):
-    terminal_characters = set(']},')
     whitespace = set(string.whitespace)
 
     def __init__(self, event_handler):
@@ -255,15 +257,14 @@ class Parser(object):
         self.event_handler.handle_object_value_end()
 
     def parse(self, json):
-        for c in json:
-            self.parse_char(c)
+        buf = Buffer(json)
+        while(buf):
+            self.states[-1].parse_buf(buf)
 
     def parse_char(self, c):
         state = self.states[-1]
         if c in self.whitespace:
             state.parse_whitespace(c)
-        elif c in self.terminal_characters:
-            state.parse_terminal_character(c)
         else:
             state.parse_char(c)
 
@@ -300,7 +301,7 @@ class MarshallEventHandler(object):
         self.current_thing = ""
 
     def handle_string_character(self, c):
-        self.current_thing += c
+         self.current_thing += c
 
     def handle_string_end(self):
         pass
