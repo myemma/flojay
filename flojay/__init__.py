@@ -10,54 +10,30 @@ class ToplevelState(ParserState):
 
     number_chars = set(string.digits)
 
-    def enter_array_state(self):
-        self.enter_state(ArrayState)
-        self.parser.invoke_handler_for_array_begin()
-
-    def enter_object_state(self):
-        self.enter_state(ObjectState)
-        self.parser.invoke_handler_for_object_begin()
-
-    def enter_string_state(self):
-        self.enter_state(StringState)
-        self.parser.invoke_handler_for_string_begin()
-
-    def enter_atom_state(self, atom):
-        self.enter_state(AtomState, atom)
-        self.parser.invoke_handler_for_atom_begin()
-
-    def enter_number_state(self):
-        self.enter_state(NumberState)
-        self.parser.invoke_handler_for_number_begin()
-
-    def enter_number_sign_state(self):
-        self.enter_state(NumberSignState)
-        self.parser.invoke_handler_for_number_begin()
-
-    def parse_buf(self, buf):
+    def parse_buf(self, parser, buf):
         buf.skip_whitespace()
         if not buf:
             return
         c = buf.peek()
         if c == '"':
             buf.take()
-            self.enter_string_state()
+            parser.enter_string_state()
         elif c in self.number_chars:
-            self.enter_number_state()
+            parser.enter_number_state()
         elif c == '-':
-            self.enter_number_sign_state()
+            parser.enter_number_sign_state()
         elif c == 't':
-            self.enter_atom_state('true')
+            parser.enter_atom_state('true')
         elif c == 'f':
-            self.enter_atom_state('false')
+            parser.enter_atom_state('false')
         elif c == 'n':
-            self.enter_atom_state('null')
+            parser.enter_atom_state('null')
         elif c == '[':
             buf.take()
-            self.enter_array_state()
+            parser.enter_array_state()
         elif c == '{':
             buf.take()
-            self.enter_object_state()
+            parser.enter_object_state()
         else:
             raise SyntaxError
 
@@ -68,104 +44,104 @@ class ArrayState(ParserState):
     Okay so the thing is we chomp the whitespace 
     """
 
-    def parse_buf(self, buf):
+    def parse_buf(self, parser, buf):
         buf.skip_whitespace()
         c = buf.peek()
         if c == ']':
             buf.take()
-            self.leave_state()
-            self.parser.invoke_handler_for_array_end()
+            parser.leave_state()
+            parser.invoke_handler_for_array_end()
         elif c == ',':
             raise SyntaxError
         else:
-            self.enter_state(ArrayDelimState)
+            parser.enter_state(ArrayDelimState)
 
 
 class ArrayDelimState(ToplevelState):
 
-    def parse_buf(self, buf):
+    def parse_buf(self, parser, buf):
         c = buf.peek()
         if c == ',':
             raise SyntaxError
-        self.parser.invoke_handler_for_array_element_begin()
-        self.switch_state(ArrayElementState)
-        super(self.__class__, self).parse_buf(buf)
+        parser.invoke_handler_for_array_element_begin()
+        parser.switch_state(ArrayElementState)
+        super(self.__class__, self).parse_buf(parser, buf)
 
 
 class ArrayElementState(ParserState):
 
-    def parse_buf(self, buf):
+    def parse_buf(self, parser, buf):
         buf.skip_whitespace()
         c = buf.peek()
         if c == ']':
-            self.parser.invoke_handler_for_array_element_end()
-            self.leave_state()
+            parser.invoke_handler_for_array_element_end()
+            parser.leave_state()
         elif c == ',':
-            self.parser.invoke_handler_for_array_element_end()
+            parser.invoke_handler_for_array_element_end()
             buf.take()
-            self.switch_state(ArrayDelimState)
+            parser.switch_state(ArrayDelimState)
         else:
             raise SyntaxError
 
 
 class ObjectState(ParserState):
 
-    def parse_buf(self, buf):
+    def parse_buf(self, parser, buf):
         buf.skip_whitespace()
         c = buf.peek()
         if c == '}':
             buf.take()
-            self.leave_state()
-            self.parser.invoke_handler_for_object_end()
+            parser.leave_state()
+            parser.invoke_handler_for_object_end()
         else:
-            self.enter_state(ObjectKeyState)
-            self.parser.invoke_handler_for_object_key_begin()
+            parser.enter_state(ObjectKeyState)
+            parser.invoke_handler_for_object_key_begin()
 
 
 class ObjectKeyState(ParserState):
 
-    def parse_buf(self, buf):
+    def parse_buf(self, parser, buf):
         buf.skip_whitespace()
         c = buf.take()
         if c == '"':
-            self.switch_state(ObjectPairDelimState)
-            self.enter_state(StringState)
-            self.parser.invoke_handler_for_string_begin()
+            parser.switch_state(ObjectPairDelimState)
+            parser.enter_state(StringState)
+            parser.invoke_handler_for_string_begin()
         else:
             raise SyntaxError
 
 
 class ObjectPairDelimState(ParserState):
 
-    def parse_buf(self, buf):
+    def parse_buf(self, parser, buf):
         c = buf.take()
         if c != ':':
             raise SyntaxError
-        self.parser.invoke_handler_for_object_key_end()
-        self.switch_state(ObjectValuePrelimState)
-        self.parser.invoke_handler_for_object_value_begin()
+        parser.invoke_handler_for_object_key_end()
+        parser.switch_state(ObjectValuePrelimState)
+        parser.invoke_handler_for_object_value_begin()
 
 
 class ObjectValuePrelimState(ParserState):
-    def parse_buf(self, buf):
+    def parse_buf(self, parser, buf):
         if buf.peek() in ',}':
             raise SyntaxError
-        self.switch_state(ObjectValueState)
+        parser.switch_state(ObjectValueState)
 
 
 class ObjectValueState(ToplevelState):
-    def parse_buf(self, buf):
+    def parse_buf(self, parser, buf):
         c = buf.peek()
         if c == '}':
-            self.parser.invoke_handler_for_object_value_end()
-            self.leave_state()
+            parser.invoke_handler_for_object_value_end()
+            parser.leave_state()
         elif c == ',':
             buf.take()
-            self.parser.invoke_handler_for_object_value_end()
-            self.switch_state(ObjectKeyState)
-            self.parser.invoke_handler_for_object_key_begin()
+            parser.invoke_handler_for_object_value_end()
+            parser.switch_state(ObjectKeyState)
+            parser.invoke_handler_for_object_key_begin()
         else:
-            super(self.__class__, self).parse_buf(buf)
+            super(self.__class__, self).parse_buf(parser, buf)
 
 class Buffer(object):
     def __init__(self, string):
@@ -214,7 +190,31 @@ class Parser(object):
     def __init__(self, event_handler):
         self.event_handler = event_handler
         self.states = []
-        self.enter_state(ToplevelState(self))
+        self.enter_state(ToplevelState)
+
+    def enter_array_state(self):
+        self.enter_state(ArrayState)
+        self.invoke_handler_for_array_begin()
+
+    def enter_object_state(self):
+        self.enter_state(ObjectState)
+        self.invoke_handler_for_object_begin()
+
+    def enter_string_state(self):
+        self.enter_state(StringState)
+        self.invoke_handler_for_string_begin()
+
+    def enter_atom_state(self, atom):
+        self.enter_state(AtomState, atom)
+        self.invoke_handler_for_atom_begin()
+
+    def enter_number_state(self):
+        self.enter_state(NumberState)
+        self.invoke_handler_for_number_begin()
+
+    def enter_number_sign_state(self):
+        self.enter_state(NumberSignState)
+        self.invoke_handler_for_number_begin()
 
     def invoke_handler_for_string_character(self, c):
         self.event_handler.handle_string_character(c)
@@ -279,9 +279,14 @@ class Parser(object):
     def parse(self, json):
         buf = Buffer(json)
         while(buf):
-            self.states[-1].parse_buf(buf)
+            self.states[-1].parse_buf(self, buf)
 
-    def enter_state(self, state):
+    def switch_state(self, state_class, *args):
+        self.leave_state()
+        self.enter_state(state_class, *args)
+
+    def enter_state(self, state_class, *args):
+        state = state_class(self, *args)
         self.states.append(state)
 
     def leave_state(self):

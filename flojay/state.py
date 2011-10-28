@@ -17,10 +17,3 @@ class ParserState(object):
 
     def leave_state(self):
         self.parser.leave_state()
-
-
-class ValueState(ParserState):
-
-    def exit_state(self):
-        self.leave_state()
-        self.invoke_end_handler()

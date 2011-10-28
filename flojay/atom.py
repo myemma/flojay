@@ -1,32 +1,22 @@
 # true, false and null
 
-from flojay.state import ValueState
+from flojay.state import ParserState
 from flojay.exception import SyntaxError
 
 
-class AtomState(ValueState):
+class AtomState(ParserState):
     def setUp(self, atom):
-        self.pointer = 0
+        # This is the only one that has any state :(
+        self.count = 0
         self.atom = atom
-        self.partial = ''
 
-    def parse_buf(self, buf):
-        self.partial += buf.take_n(len(self.atom) - len(self.partial))
-        if self.partial == self.atom:
-            self.parser.invoke_handler_for_atom_character(self.partial)
-            self.exit_state()
-        if self.partial != self.atom[0:len(self.partial)]:
+    def parse_buf(self, parser, buf):
+        atom = buf.take_n(len(self.atom) - self.count)
+
+        if atom != self.atom[self.count:self.count + len(atom)]:
             raise SyntaxError
-
-    def invoke_end_handler(self):
-        self.parser.invoke_handler_for_atom_end()
-
-    def parse_whitespace(self, c):
-        self.parse_terminal_character(c)
-
-    def parse_char(self, c):
-        if c != self.atom[self.pointer]:
-            raise SyntaxError
-        else:
-            self.parser.invoke_handler_for_atom_character(c)
-        self.pointer += 1
+        parser.invoke_handler_for_atom_character(atom)
+        self.count += len(atom)
+        if self.count == len(self.atom):
+            parser.invoke_handler_for_atom_end()
+            self.leave_state()
