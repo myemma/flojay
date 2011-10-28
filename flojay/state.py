@@ -1,4 +1,5 @@
 class ParserState(object):
+
     def __init__(self, parser, *args):
         self.parser = parser
         self.setUp(*args)
@@ -6,14 +7,8 @@ class ParserState(object):
     def setUp(self, *args):
         pass
 
-    def handle_begin(self):
-        pass
-
-    def handle_end(self):
-        pass
-
     def switch_state(self, state_class, *args):
-        self.leave_state()
+        self.parser.leave_state()
         self.enter_state(state_class, *args)
 
     def enter_state(self, state_class, *args):
@@ -23,16 +18,9 @@ class ParserState(object):
     def leave_state(self):
         self.parser.leave_state()
 
-    def reparse_char(self, c):
-        self.parser.parse_char(c)
-
 
 class ValueState(ParserState):
 
     def exit_state(self):
         self.leave_state()
         self.invoke_end_handler()
-
-    def parse_terminal_character(self, c):
-        self.exit_state()
-        self.parser.parse_char(c)

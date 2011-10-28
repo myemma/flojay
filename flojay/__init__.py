@@ -1,6 +1,6 @@
 from flojay.state import ParserState
 from flojay.string_state import StringState
-from flojay.number import NumberState
+from flojay.number import NumberState, NumberSignState
 from flojay.atom import AtomState
 from flojay.exception import SyntaxError
 from flojay.state import ParserState
@@ -8,7 +8,7 @@ import string
 
 class ToplevelState(ParserState):
 
-    number_chars = set(string.digits + '-')
+    number_chars = set(string.digits)
 
     def enter_array_state(self):
         self.enter_state(ArrayState)
@@ -30,6 +30,10 @@ class ToplevelState(ParserState):
         self.enter_state(NumberState)
         self.parser.invoke_handler_for_number_begin()
 
+    def enter_number_sign_state(self):
+        self.enter_state(NumberSignState)
+        self.parser.invoke_handler_for_number_begin()
+
     def parse_buf(self, buf):
         buf.skip_whitespace()
         if not buf:
@@ -40,6 +44,8 @@ class ToplevelState(ParserState):
             self.enter_string_state()
         elif c in self.number_chars:
             self.enter_number_state()
+        elif c == '-':
+            self.enter_number_sign_state()
         elif c == 't':
             self.enter_atom_state('true')
         elif c == 'f':
@@ -172,20 +178,34 @@ class Buffer(object):
     def peek(self):
         return self.buf[self.pointer]
 
-    def take(self, n = 1):
-        value = self.buf[self.pointer:self.pointer+n]
+    def take_while(self, whitelist):
+        ptr = self.pointer
+        buf = self.buf
+        while ptr < len(buf) and buf[ptr] in whitelist:
+            ptr += 1
+        return self.take_n(ptr - self.pointer)
+
+    def take_until(self, terminals):
+        ptr = self.pointer
+        buf = self.buf
+        while ptr < len(buf) and buf[ptr] not in terminals:
+            ptr += 1
+        return self.take_n(ptr - self.pointer)
+
+    def take_n(self, n):
+        value = self.buf[self.pointer:self.pointer + n]
         self.pointer += n
+        return value
+
+    def take(self):
+        value = self.buf[self.pointer]
+        self.pointer += 1
         return value
 
     whitespace = set(string.whitespace)
 
     def skip_whitespace(self):
-        ptr = self.pointer
-        buf = self.buf
-        whitespace = self.whitespace
-        while ptr < len(buf) and buf[ptr] in whitespace:
-            ptr += 1
-        self.pointer = ptr
+        self.take_while(self.whitespace)
 
 
 class Parser(object):
@@ -261,20 +281,11 @@ class Parser(object):
         while(buf):
             self.states[-1].parse_buf(buf)
 
-    def parse_char(self, c):
-        state = self.states[-1]
-        if c in self.whitespace:
-            state.parse_whitespace(c)
-        else:
-            state.parse_char(c)
-
     def enter_state(self, state):
         self.states.append(state)
-        state.handle_begin()
 
     def leave_state(self):
         state = self.states.pop()
-        state.handle_end()
 
 
 class MarshallEventHandler(object):

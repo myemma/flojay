@@ -29,6 +29,10 @@ class StringTests(TestCase):
         eq_(self.buf, '"test"\\')
         eq_(self.begin, 1)
         eq_(self.end, 1)
+        self.buf = ''
+        p.parse('"\\')
+        p.parse('"')
+        eq_(self.buf, '"')
 
     def test_partial(self):
         p = flojay.Parser(self)

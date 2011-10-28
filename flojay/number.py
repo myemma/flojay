@@ -3,87 +3,70 @@ from flojay.exception import SyntaxError
 import string
 
 class BaseNumberState(ValueState):
-    def invoke_end_handler(self):
-        self.parser.invoke_handler_for_number_end()
 
     number_chars = set(string.digits)
     terminal_characters = set(']},' + string.whitespace)
 
+    def invoke_end_handler(self):
+        self.parser.invoke_handler_for_number_end()
+
     def parse_buf(self, buf):
-        num = ''
-        while(buf):
-            if buf.peek() in self.terminal_characters:
-                self.parser.invoke_handler_for_number_character(num)
+        num = buf.take_while(self.number_chars)
+        if num == '':
+            num = buf.peek()
+            if num in self.terminal_characters:
                 self.invoke_end_handler()
                 self.leave_state()
-                return
-
-            c = buf.take()
-            if c not in self.number_chars:
+            else:
                 raise SyntaxError
-            num += c
-        self.parser.invoke_handler_for_number_character(num)
+        else:
+            self.parser.invoke_handler_for_number_character(num)
+            self.invoke_end_handler()
+            self.leave_state()
+
+
+class NumberSignState(ValueState):
+    def parse_buf(self, buf):
+        buf.take()
+        self.parser.invoke_handler_for_number_character('-')
+        self.switch_state(NumberState)
 
 
 class NumberState(BaseNumberState):
-
-    def setUp(self):
-        self.count = 0
-
     def enter_decimal_state(self):
-        self.switch_state(DecimalState)
+        self.switch_state(BaseNumberState)
 
     def enter_exp_state(self):
-        self.switch_state(ExpState)
+        self.switch_state(BaseNumberState)
+
+    def enter_exp_sign_state(self):
+        self.switch_state(ExpSignState)
 
     def parse_buf(self, buf):
-        num = ''
-        while(buf):
-            if buf.peek() in self.terminal_characters:
-                self.parser.invoke_handler_for_number_character(num)
+        num = buf.take_while(self.number_chars)
+        if num == "":
+            num = buf.peek()
+            if num in self.terminal_characters:
                 self.invoke_end_handler()
                 self.leave_state()
-                return
-
-            c = buf.take()
-            self.count += 1
-            num += c
-
-            if c == '.':
+            elif num == '.':
+                buf.take()
                 self.parser.invoke_handler_for_number_character(num)
                 self.enter_decimal_state()
-                return
-            elif c == 'e' or c == 'E':
+            elif num == 'e' or num == 'E':
+                buf.take()
                 self.parser.invoke_handler_for_number_character(num)
-                self.enter_exp_state()
-                return
-            elif c not in self.number_chars and not (c == '-' and self.count == 1):
-                raise SyntaxError
-            
-        self.parser.invoke_handler_for_number_character(num)
-
-
-class DecimalState(BaseNumberState): pass
-
-
-class ExpState(NumberState):
-    
-    def setUp(self):
-        self.count = 0
-
-    def parse_buf(self, buf):
-        num = ''
-        while buf:
-            if buf.peek() in self.terminal_characters:
-                self.parser.invoke_handler_for_number_character(num)
-                self.invoke_end_handler()
-                self.leave_state()
-                return
-
-            c = buf.take()
-            if (self.count == 0 and c in ['-','+']) or c in self.number_chars:
-                self.count += 1
-                num += c
+                self.enter_exp_sign_state()
             else:
                 raise SyntaxError
-        self.parser.invoke_handler_for_number_character(num)
+        else:
+            self.parser.invoke_handler_for_number_character(num)
+
+
+class ExpSignState(ValueState):
+    def parse_buf(self, buf):
+        c = buf.peek()
+        if c in '-+':
+            buf.take()
+            self.parser.invoke_handler_for_number_character(c)
+        self.switch_state(BaseNumberState)

@@ -11,7 +11,7 @@ class AtomState(ValueState):
         self.partial = ''
 
     def parse_buf(self, buf):
-        self.partial += buf.take(len(self.atom) - len(self.partial))
+        self.partial += buf.take_n(len(self.atom) - len(self.partial))
         if self.partial == self.atom:
             self.parser.invoke_handler_for_atom_character(self.partial)
             self.exit_state()

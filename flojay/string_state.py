@@ -15,7 +15,7 @@ class UnicodeCodepointState(ParserState):
         self.buf = ""
 
     def parse_buf(self, buf):
-        self.buf += buf.take(4  - len(self.buf))
+        self.buf += buf.take_n(4  - len(self.buf))
         if len(self.buf) == 4:
             self.parser.invoke_handler_for_string_character(unichr(int(self.buf, 16)))
             self.leave_state()
@@ -25,7 +25,7 @@ class InvalidEscapeCharacter(Exception):
     pass
 
 
-class EscapeCharState(ParserState):
+class EscapeCharacterState(ParserState):
     escape_chars = {'t': "\t", 'n': "\n", 'b': "\b", 'f': "\f",
                      'r': "\r", '/': '/', '"': '"', '\\': '\\'}
 
@@ -42,22 +42,22 @@ class EscapeCharState(ParserState):
 
 
 class StringState(ParserState):
-    def enter_escape_char_state(self):
-        self.enter_state(EscapeCharState)
+    terminals = set('"\\')
 
     def parse_buf(self, buf):
-        chars = ''
         while buf:
-            c = buf.take()
-            if c == '\\':
-                self.parser.invoke_handler_for_string_character(chars)
-                self.enter_escape_char_state()
-                return
-            elif c == '"':
-                self.parser.invoke_handler_for_string_character(chars)
-                self.parser.invoke_handler_for_string_end()
-                self.leave_state()
-                return
+            c = buf.take_until(self.terminals)
+            if c == "":
+                c = buf.take()
+                if c == '"':
+                    self.parser.invoke_handler_for_string_end()
+                    self.leave_state()
+                    return
+                elif c == '\\':
+                    self.enter_state(EscapeCharacterState)
+                    return
             else:
-                chars += c
-        self.parser.invoke_handler_for_string_character(chars)
+                self.parser.invoke_handler_for_string_character(c)
+                
+
+
