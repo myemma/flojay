@@ -19,4 +19,4 @@ class AtomState(ParserState):
         self.count += len(atom)
         if self.count == len(self.atom):
             parser.invoke_handler_for_atom_end()
-            self.leave_state()
+            parser.leave_state()
