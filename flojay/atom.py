@@ -6,7 +6,6 @@ from flojay.exception import SyntaxError
 
 class AtomState(ParserState):
     def setUp(self, atom):
-        # This is the only one that has any state :(
         self.count = 0
         self.atom = atom
 

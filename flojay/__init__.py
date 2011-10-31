@@ -12,28 +12,11 @@ def parse_toplevel_state(parser, buf):
     buf.skip_whitespace()
     if not buf:
         return
-    c = buf.peek()
-    if c == '"':
-        buf.take()
-        parser.enter_string_state()
-    elif c in number_chars:
-        parser.enter_number_state()
-    elif c == '-':
-        parser.enter_number_sign_state()
-    elif c == 't':
-        parser.enter_atom_state('true')
-    elif c == 'f':
-        parser.enter_atom_state('false')
-    elif c == 'n':
-        parser.enter_atom_state('null')
-    elif c == '[':
-        buf.take()
-        parser.enter_array_state()
-    elif c == '{':
-        buf.take()
-        parser.enter_object_state()
-    else:
-        raise SyntaxError
+    try:
+        f = parser.state_transitions[buf.peek()]
+        f(buf)
+    except KeyError:
+        raise SyntaxError("Unexpected character '%s'" % buf.peek())
 
 
 def parse_array_state(parser, buf):
@@ -56,7 +39,6 @@ def parse_array_delim_state(parser, buf):
     parser.invoke_handler_for_array_element_begin()
     parser.switch_state(parse_array_element_state)
     parse_toplevel_state(parser, buf)
-
 
 def parse_array_element_state(parser, buf):
     buf.skip_whitespace()
@@ -125,9 +107,10 @@ class Buffer(object):
     def __init__(self, string):
         self.pointer = 0
         self.buf = string
+        self.buffer_length = len(self.buf)
     
     def __nonzero__(self):
-        return True if self.pointer < len(self.buf) else False
+        return True if self.pointer < self.buffer_length else False
 
     def peek(self):
         return self.buf[self.pointer]
@@ -135,14 +118,16 @@ class Buffer(object):
     def take_while(self, whitelist):
         ptr = self.pointer
         buf = self.buf
-        while ptr < len(buf) and buf[ptr] in whitelist:
+        l = self.buffer_length
+        while ptr < l and buf[ptr] in whitelist:
             ptr += 1
         return self.take_n(ptr - self.pointer)
 
     def take_until(self, terminals):
         ptr = self.pointer
         buf = self.buf
-        while ptr < len(buf) and buf[ptr] not in terminals:
+        l = self.buffer_length
+        while ptr < l and buf[ptr] not in terminals:
             ptr += 1
         return self.take_n(ptr - self.pointer)
 
@@ -168,7 +153,9 @@ class Parser(object):
     def __init__(self, event_handler):
         self.event_handler = event_handler
         self.states = []
+        self.state_pointer = 0
         self.enter_state(parse_toplevel_state)
+        self.state_transitions = self._make_toplevel_state_transitions()
 
     def enter_array_state(self):
         self.enter_state(parse_array_state)
@@ -257,17 +244,46 @@ class Parser(object):
     def parse(self, json):
         buf = Buffer(json)
         while(buf):
-            self.states[-1](self, buf)
+            self.states[self.state_pointer - 1](self, buf)
 
-    def switch_state(self, state_class, *args):
-        self.leave_state()
-        self.enter_state(state_class, *args)
+    def switch_state(self, state_class):
+        self.states[self.state_pointer - 1] = state_class
 
-    def enter_state(self, state_func, *args):
-        self.states.append(state_func)
+    def enter_state(self, state_func):
+        if len(self.states) <= self.state_pointer:
+            self.states.append(state_func)
+        else:
+            self.states[self.state_pointer] = state_func
+        self.state_pointer += 1
 
     def leave_state(self):
-        state = self.states.pop()
+        self.state_pointer -= 1
+
+    def _make_toplevel_state_transitions(self):
+
+        def enter_str(buf):
+            buf.take()
+            self.enter_string_state()
+
+        def enter_obj(buf):
+            buf.take()
+            self.enter_object_state()
+
+        def enter_array(buf):
+            buf.take()
+            self.enter_array_state()
+
+        states = {}
+        states['"'] = enter_str
+        for key in number_chars:
+            states[key] = lambda buf: self.enter_number_state()
+        states['-'] = lambda buf: self.enter_number_sign_state()
+        states['t'] = lambda buf: self.enter_atom_state('true')
+        states['f'] = lambda buf: self.enter_atom_state('false')
+        states['n'] = lambda buf: self.enter_atom_state('null')
+        states['{'] = enter_obj
+        states['['] = enter_array
+        return states
 
 
 class MarshallEventHandler(object):
