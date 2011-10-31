@@ -291,35 +291,36 @@ class MarshallEventHandler(object):
         self.container.append(self.current_thing)
 
     def handle_string_begin(self):
-        self.current_thing = ""
+        self.current_thing = []
 
     def handle_string_character(self, c):
-         self.current_thing += c
+         self.current_thing.append(c)
 
     def handle_string_end(self):
-        pass
+        self.current_thing = "".join(self.current_thing)
 
     def handle_number_begin(self):
-        self.current_thing = ""
+        self.current_thing = []
 
     def handle_number_character(self, c):
-        self.current_thing += c
+        self.current_thing.append(c)
 
     def handle_number_end(self):
-        self.current_thing = float(self.current_thing)
+        self.current_thing = float("".join(self.current_thing))
 
     def handle_atom_begin(self):
-        self.current_thing = ""
+        self.current_thing = []
 
     def handle_atom_character(self, c):
-        self.current_thing += c
+        self.current_thing.append(c)
 
     def handle_atom_end(self):
-        if self.current_thing == 'true':
+        current_thing = "".join(self.current_thing)
+        if current_thing == 'true':
             self.current_thing = True
-        elif self.current_thing == 'false':
+        elif current_thing == 'false':
             self.current_thing = False
-        elif self.current_thing == 'null':
+        elif current_thing == 'null':
             self.current_thing = None
         else:
             raise Exception("Invalid atom")
