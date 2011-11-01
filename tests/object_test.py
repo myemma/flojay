@@ -14,14 +14,14 @@ class ObjectTest(TestCase):
         return _method
 
     def test_empty(self):
-        p = flojay.Parser(self)
-        p.parse('{}')
+        p = flojay.Parser()
+        p.parse('{}', self)
         eq_(self.called_methods, ["handle_object_begin", "handle_object_end"])
 
     def test_pair(self):
-        p = flojay.Parser(self)
-        p.parse('{"a"')
-        p.parse(': 1}')
+        p = flojay.Parser()
+        p.parse('{"a"', self)
+        p.parse(': 1}', self)
         eq_(self.called_methods,
             ["handle_object_begin",
              "handle_object_key_begin",
@@ -37,8 +37,8 @@ class ObjectTest(TestCase):
              "handle_object_end"])
 
     def test_two(self):
-        p = flojay.Parser(self)
-        p.parse('{"a": 1,"b": 2}')
+        p = flojay.Parser()
+        p.parse('{"a": 1,"b": 2}', self)
         eq_(self.called_methods,
             ["handle_object_begin",
              "handle_object_key_begin",
@@ -66,6 +66,6 @@ class ObjectTest(TestCase):
     def test_syntax_errors(self):
         for s in ['{a:1}', '{"a":}', '{"a" 1}', '{"a": 1,}', '{"a": 1, 2}', '{"a": 1 "b": 2}']:
             def tst():
-                p = flojay.Parser(self)
-                p.parse(s)
+                p = flojay.Parser()
+                p.parse(s, self)
             assert_raises(SyntaxError, tst)

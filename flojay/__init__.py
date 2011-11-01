@@ -8,23 +8,22 @@ import string
 
 number_chars = set(string.digits)
 
-def parse_toplevel_state(parser, buf):
+def parse_toplevel_state(parser, buf, handler):
     buf.skip_whitespace()
     if not buf:
         return
     try:
-        f = parser.state_transitions[buf.peek()]
-        f(buf)
+        parser.state_transitions[buf.peek()](buf, handler)
     except KeyError:
         raise SyntaxError("Unexpected character '%s'" % buf.peek())
 
 
-def parse_array_state(parser, buf):
+def parse_array_state(parser, buf, handler):
     buf.skip_whitespace()
     c = buf.peek()
     if c == ']':
         buf.take()
-        parser.invoke_handler_for_array_end()
+        handler.handle_array_end()
         parser.leave_state()
     elif c == ',':
         raise SyntaxError
@@ -32,75 +31,75 @@ def parse_array_state(parser, buf):
         parser.enter_state(parse_array_delim_state)
 
 
-def parse_array_delim_state(parser, buf):
+def parse_array_delim_state(parser, buf, handler):
     c = buf.peek()
     if c == ',':
         raise SyntaxError
-    parser.invoke_handler_for_array_element_begin()
+    handler.handle_array_element_begin()
     parser.switch_state(parse_array_element_state)
-    parse_toplevel_state(parser, buf)
+    parse_toplevel_state(parser, buf, handler)
 
-def parse_array_element_state(parser, buf):
+def parse_array_element_state(parser, buf, handler):
     buf.skip_whitespace()
     c = buf.peek()
     if c == ']':
-        parser.invoke_handler_for_array_element_end()
+        handler.handle_array_element_end()
         parser.leave_state()
     elif c == ',':
-        parser.invoke_handler_for_array_element_end()
+        handler.handle_array_element_end()
         buf.take()
         parser.switch_state(parse_array_delim_state)
     else:
         raise SyntaxError
 
-def parse_object_state(parser, buf):
+def parse_object_state(parser, buf, handler):
     buf.skip_whitespace()
     c = buf.peek()
     if c == '}':
         buf.take()
         parser.leave_state()
-        parser.invoke_handler_for_object_end()
+        handler.handle_object_end()
     else:
         parser.enter_state(parse_object_key_state)
-        parser.invoke_handler_for_object_key_begin()
+        handler.handle_object_key_begin()
 
-def parse_object_key_state(parser, buf):
+def parse_object_key_state(parser, buf, handler):
     buf.skip_whitespace()
     c = buf.take()
-    if c == '"':
-        parser.switch_state(parse_object_pair_delim_state)
-        parser.enter_state(parse_string_state)
-        parser.invoke_handler_for_string_begin()
-    else:
+    if c != '"':
         raise SyntaxError
+    parser.switch_state(parse_object_pair_delim_state)
+    parser.enter_state(parse_string_state)
+    handler.handle_string_begin()
 
-def parse_object_pair_delim_state(parser, buf):
+
+def parse_object_pair_delim_state(parser, buf, handler):
     c = buf.take()
     if c != ':':
         raise SyntaxError
-    parser.invoke_handler_for_object_key_end()
+    handler.handle_object_key_end()
     parser.switch_state(parse_object_value_prelim_state)
-    parser.invoke_handler_for_object_value_begin()
+    handler.handle_object_value_begin()
 
 
-def parse_object_value_prelim_state(parser, buf):
+def parse_object_value_prelim_state(parser, buf, handler):
     if buf.peek() in ',}':
         raise SyntaxError
     parser.switch_state(parse_object_value_state)
 
 
-def parse_object_value_state(parser, buf):
+def parse_object_value_state(parser, buf, handler):
     c = buf.peek()
     if c == '}':
-        parser.invoke_handler_for_object_value_end()
+        handler.handle_object_value_end()
         parser.leave_state()
     elif c == ',':
         buf.take()
-        parser.invoke_handler_for_object_value_end()
+        handler.handle_object_value_end()
         parser.switch_state(parse_object_key_state)
-        parser.invoke_handler_for_object_key_begin()
+        handler.handle_object_key_begin()
     else:
-        parse_toplevel_state(parser, buf)
+        parse_toplevel_state(parser, buf, handler)
 
 
 class Buffer(object):
@@ -150,101 +149,40 @@ class Buffer(object):
 class Parser(object):
     whitespace = set(string.whitespace)
 
-    def __init__(self, event_handler):
-        self.event_handler = event_handler
-        self.states = []
+    def __init__(self):
+        self.states = [None] * 64
         self.state_pointer = 0
         self.enter_state(parse_toplevel_state)
         self.state_transitions = self._make_toplevel_state_transitions()
 
-    def enter_array_state(self):
+    def enter_array_state(self, handler):
         self.enter_state(parse_array_state)
-        self.invoke_handler_for_array_begin()
+        handler.handle_array_begin()
 
-    def enter_object_state(self):
+    def enter_object_state(self, handler):
         self.enter_state(parse_object_state)
-        self.invoke_handler_for_object_begin()
+        handler.handle_object_begin()
 
-    def enter_string_state(self):
+    def enter_string_state(self, handler):
         self.enter_state(parse_string_state)
-        self.invoke_handler_for_string_begin()
+        handler.handle_string_begin()
 
-    def enter_atom_state(self, atom):
+    def enter_atom_state(self, atom, handler):
         self.enter_state(AtomState(atom).parse_buf)
-        self.invoke_handler_for_atom_begin()
+        handler.handle_atom_begin()
 
-    def enter_number_state(self):
+    def enter_number_state(self, handler):
         self.enter_state(parse_number_state)
-        self.invoke_handler_for_number_begin()
+        handler.handle_number_begin()
 
-    def enter_number_sign_state(self):
+    def enter_number_sign_state(self, handler):
         self.enter_state(parse_number_sign_state)
-        self.invoke_handler_for_number_begin()
+        handler.handle_number_begin()
 
-    def invoke_handler_for_string_character(self, c):
-        self.event_handler.handle_string_character(c)
-
-    def invoke_handler_for_string_begin(self):
-        self.event_handler.handle_string_begin()
-
-    def invoke_handler_for_string_end(self):
-        self.event_handler.handle_string_end()
-
-    def invoke_handler_for_atom_character(self, c):
-        self.event_handler.handle_atom_character(c)
-
-    def invoke_handler_for_atom_begin(self):
-        self.event_handler.handle_atom_begin()
-
-    def invoke_handler_for_atom_end(self):
-        self.event_handler.handle_atom_end()
-
-    def invoke_handler_for_number_begin(self):
-        self.event_handler.handle_number_begin()
-
-    def invoke_handler_for_number_end(self):
-        self.event_handler.handle_number_end()
-
-    def invoke_handler_for_number_character(self, c):
-        self.event_handler.handle_number_character(c)
-
-    def invoke_handler_for_whitespace_character(self, c):
-        self.event_handler.handle_whitespace_character(c)
-
-    def invoke_handler_for_array_begin(self):
-        self.event_handler.handle_array_begin()
-
-    def invoke_handler_for_array_end(self):
-        self.event_handler.handle_array_end()
-
-    def invoke_handler_for_array_element_begin(self):
-        self.event_handler.handle_array_element_begin()
-
-    def invoke_handler_for_array_element_end(self):
-        self.event_handler.handle_array_element_end()
-
-    def invoke_handler_for_object_begin(self):
-        self.event_handler.handle_object_begin()
-
-    def invoke_handler_for_object_end(self):
-        self.event_handler.handle_object_end()
-
-    def invoke_handler_for_object_key_begin(self):
-        self.event_handler.handle_object_key_begin()
-
-    def invoke_handler_for_object_key_end(self):
-        self.event_handler.handle_object_key_end()
-
-    def invoke_handler_for_object_value_begin(self):
-        self.event_handler.handle_object_value_begin()
-
-    def invoke_handler_for_object_value_end(self):
-        self.event_handler.handle_object_value_end()
-
-    def parse(self, json):
+    def parse(self, json, handler):
         buf = Buffer(json)
         while(buf):
-            self.states[self.state_pointer - 1](self, buf)
+            self.states[self.state_pointer - 1](self, buf, handler)
 
     def switch_state(self, state_class):
         self.states[self.state_pointer - 1] = state_class
@@ -261,26 +199,26 @@ class Parser(object):
 
     def _make_toplevel_state_transitions(self):
 
-        def enter_str(buf):
+        def enter_str(buf, handler):
             buf.take()
-            self.enter_string_state()
+            self.enter_string_state(handler)
 
-        def enter_obj(buf):
+        def enter_obj(buf, handler):
             buf.take()
-            self.enter_object_state()
+            self.enter_object_state(handler)
 
-        def enter_array(buf):
+        def enter_array(buf, handler):
             buf.take()
-            self.enter_array_state()
+            self.enter_array_state(handler)
 
         states = {}
         states['"'] = enter_str
         for key in number_chars:
-            states[key] = lambda buf: self.enter_number_state()
-        states['-'] = lambda buf: self.enter_number_sign_state()
-        states['t'] = lambda buf: self.enter_atom_state('true')
-        states['f'] = lambda buf: self.enter_atom_state('false')
-        states['n'] = lambda buf: self.enter_atom_state('null')
+            states[key] = lambda buf, handler: self.enter_number_state(handler)
+        states['-'] = lambda buf, handler: self.enter_number_sign_state(handler)
+        states['t'] = lambda buf, handler: self.enter_atom_state('true', handler)
+        states['f'] = lambda buf, handler: self.enter_atom_state('false', handler)
+        states['n'] = lambda buf, handler: self.enter_atom_state('null', handler)
         states['{'] = enter_obj
         states['['] = enter_array
         return states
@@ -364,6 +302,6 @@ class MarshallEventHandler(object):
 
 def marshal(json):
     handler = MarshallEventHandler()
-    p = Parser(handler)
-    p.parse(json)
+    p = Parser()
+    p.parse(json, handler)
     return handler.current_thing
