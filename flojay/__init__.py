@@ -123,7 +123,7 @@ def parse_string_state(parser, buf, handler):
 
 def parse_toplevel_state(parser, buf, handler):
     buf.skip_whitespace()
-    if not buf:
+    if buf.pointer >= buf.buffer_length:
         return
     try:
         parser.state_transitions[buf.peek()](buf, handler)
@@ -222,6 +222,7 @@ class Buffer(object):
         self.buffer_length = len(self.buf)
     
     def __nonzero__(self):
+        raise SyntaxError
         return self.pointer < self.buffer_length
 
     def peek(self):
@@ -294,7 +295,7 @@ class Parser(object):
 
     def parse(self, json, handler):
         buf = Buffer(json)
-        while(buf):
+        while(buf.pointer < buf.buffer_length):
             self.states[self.state_pointer - 1](self, buf, handler)
 
     def switch_state(self, state_func):
