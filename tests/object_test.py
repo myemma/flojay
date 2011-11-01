@@ -1,5 +1,5 @@
 import flojay
-from flojay.exception import SyntaxError
+from flojay import SyntaxError
 from unittest import TestCase
 from nose.tools import eq_, assert_raises
 

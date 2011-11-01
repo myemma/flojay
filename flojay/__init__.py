@@ -1,12 +1,125 @@
-from flojay.state import ParserState
-from flojay.string_state import parse_string_state
-from flojay.number import parse_number_state, parse_number_sign_state
-from flojay.atom import AtomState
-from flojay.exception import SyntaxError
-from flojay.state import ParserState
 import string
 
 number_chars = set(string.digits)
+
+class SyntaxError(Exception):
+    pass
+
+# true, false, and null
+class AtomState(object):
+    def __init__(self, atom):
+        self.count = 0
+        self.atom = atom
+
+    def parse_buf(self, parser, buf, handler):
+        atom = buf.take_n(len(self.atom) - self.count)
+
+        if atom != self.atom[self.count:self.count + len(atom)]:
+            raise SyntaxError
+        handler.handle_atom_character(atom)
+        self.count += len(atom)
+        if self.count == len(self.atom):
+            handler.handle_atom_end()
+            parser.leave_state()
+
+number_chars = set(string.digits)
+terminal_characters = set(']},' + string.whitespace)
+
+def parse_base_number_state(parser, buf, handler):
+    num = buf.take_while(number_chars)
+    if num == '':
+        num = buf.peek()
+        if num in terminal_characters:
+            handler.handle_number_end()
+            parser.leave_state()
+        else:
+            raise SyntaxError
+    else:
+        handler.handle_number_character(num)
+        handler.handle_number_end()
+        parser.leave_state()
+
+
+def parse_number_sign_state(parser, buf, handler):
+    buf.take()
+    handler.handle_number_character('-')
+    parser.switch_state(parse_number_state)
+
+def parse_number_state(parser, buf, handler):
+    num = buf.take_while(number_chars)
+    if num == "":
+        num = buf.peek()
+        if num in terminal_characters:
+            handler.handle_number_end()
+            parser.leave_state()
+        elif num == '.':
+            buf.take()
+            handler.handle_number_character(num)
+            parser.switch_state(parse_base_number_state)
+        elif num == 'e' or num == 'E':
+            buf.take()
+            handler.handle_number_character(num)
+            parser.switch_state(parse_exp_sign_state)
+        else:
+            raise SyntaxError
+    else:
+        handler.handle_number_character(num)
+
+
+def parse_exp_sign_state(parser, buf, handler):
+    c = buf.peek()
+    if c in '-+':
+        buf.take()
+        handler.handle_number_character(c)
+    parser.switch_state(parse_base_number_state)
+
+class UnicodeCodepointState(object):
+
+    hexdigits = set(string.hexdigits)
+
+    def __init__(self):
+        self.buf = ""
+
+    def parse_buf(self, parser, buf, handler):
+        self.buf += buf.take_n(4  - len(self.buf))
+        if len(self.buf) == 4:
+            handler.handle_string_character(unichr(int(self.buf, 16)))
+            parser.leave_state()
+
+
+class InvalidEscapeCharacter(Exception):
+    pass
+
+
+escape_chars = {'t': "\t", 'n': "\n", 'b': "\b", 'f': "\f",
+                'r': "\r", '/': '/', '"': '"', '\\': '\\'}
+
+
+def parse_escape_chars_state(parser, buf, handler):
+    c = buf.take()
+    if c in escape_chars:
+        escape_char = escape_chars[c]
+        handler.handle_string_character(escape_char)
+        parser.leave_state()
+    elif c == 'u':
+        parser.switch_state(UnicodeCodepointState().parse_buf)
+    else:
+        raise InvalidEscapeCharacter
+
+
+string_terminals = set('"\\')
+
+def parse_string_state(parser, buf, handler):
+    c = buf.take_until(string_terminals)
+    if c == "":
+        c = buf.take()
+        if c == '"':
+            handler.handle_string_end()
+            parser.leave_state()
+        elif c == '\\':
+            parser.enter_state(parse_escape_chars_state)
+    else:
+        handler.handle_string_character(c)
 
 def parse_toplevel_state(parser, buf, handler):
     buf.skip_whitespace()
@@ -109,7 +222,7 @@ class Buffer(object):
         self.buffer_length = len(self.buf)
     
     def __nonzero__(self):
-        return True if self.pointer < self.buffer_length else False
+        return self.pointer < self.buffer_length
 
     def peek(self):
         return self.buf[self.pointer]
@@ -184,8 +297,8 @@ class Parser(object):
         while(buf):
             self.states[self.state_pointer - 1](self, buf, handler)
 
-    def switch_state(self, state_class):
-        self.states[self.state_pointer - 1] = state_class
+    def switch_state(self, state_func):
+        self.states[self.state_pointer - 1] = state_func
 
     def enter_state(self, state_func):
         if len(self.states) <= self.state_pointer:
