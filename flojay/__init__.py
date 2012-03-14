@@ -467,7 +467,8 @@ def unmarshal(obj):
         return unmarshal_list(obj)
     elif isinstance(obj, {}.__class__):
         return unmarshal_dict(obj)
-    elif isinstance(obj, ''.__class__):
+    elif isinstance(obj, ''.__class__) or \
+            isinstance(obj, u''.__class__):
         return unmarshal_string(obj)
     elif obj is False:
         def _false():

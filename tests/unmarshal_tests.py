@@ -18,7 +18,7 @@ class UnmarshalTests(TestCase):
 
     def test_dict(self):
         eq_(''.join(flojay.unmarshal({})), '{}')
-        gen = flojay.unmarshal({'key': 3.14})
+        gen = flojay.unmarshal({u'key': 3.14})
         eq_(''.join(gen), '{"key":3.14}')
         gen = flojay.unmarshal({'a': 1, 'b': 2})
         eq_(''.join(gen), '{"a":1,"b":2}')
