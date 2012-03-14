@@ -2,8 +2,10 @@ import string
 
 number_chars = set(string.digits)
 
+
 class SyntaxError(Exception):
     pass
+
 
 # true, false, and null
 class AtomState(object):
@@ -25,6 +27,7 @@ class AtomState(object):
 number_chars = set(string.digits)
 terminal_characters = set(']},' + string.whitespace)
 
+
 def parse_base_number_state(parser, buf, handler):
     num = buf.take_while(number_chars)
     if num == '':
@@ -44,6 +47,7 @@ def parse_number_sign_state(parser, buf, handler):
     buf.take()
     handler.handle_number_character('-')
     parser.switch_state(parse_number_state)
+
 
 def parse_number_state(parser, buf, handler):
     num = buf.take_while(number_chars)
@@ -73,6 +77,7 @@ def parse_exp_sign_state(parser, buf, handler):
         handler.handle_number_character(c)
     parser.switch_state(parse_base_number_state)
 
+
 class UnicodeCodepointState(object):
 
     hexdigits = set(string.hexdigits)
@@ -81,7 +86,7 @@ class UnicodeCodepointState(object):
         self.buf = ""
 
     def parse_buf(self, parser, buf, handler):
-        self.buf += buf.take_n(4  - len(self.buf))
+        self.buf += buf.take_n(4 - len(self.buf))
         if len(self.buf) == 4:
             handler.handle_string_character(unichr(int(self.buf, 16)))
             parser.leave_state()
@@ -109,6 +114,7 @@ def parse_escape_chars_state(parser, buf, handler):
 
 string_terminals = set('"\\')
 
+
 def parse_string_state(parser, buf, handler):
     c = buf.take_until(string_terminals)
     if c == "":
@@ -120,6 +126,7 @@ def parse_string_state(parser, buf, handler):
             parser.enter_state(parse_escape_chars_state)
     else:
         handler.handle_string_character(c)
+
 
 def parse_toplevel_state(parser, buf, handler):
     buf.skip_whitespace()
@@ -151,6 +158,7 @@ def parse_array_delim_state(parser, buf, handler):
     handler.handle_array_element_begin()
     parser.switch_state(parse_array_element_state)
     parse_toplevel_state(parser, buf, handler)
+
 
 def parse_array_element_state(parser, buf, handler):
     buf.skip_whitespace()
@@ -220,10 +228,6 @@ class Buffer(object):
         self.pointer = 0
         self.buf = string
         self.buffer_length = len(self.buf)
-    
-    def __nonzero__(self):
-        raise SyntaxError
-        return self.pointer < self.buffer_length
 
     def peek(self):
         return self.buf[self.pointer]
@@ -362,7 +366,7 @@ class MarshallEventHandler(object):
         self.current_thing = []
 
     def handle_string_character(self, c):
-         self.current_thing.append(c)
+        self.current_thing.append(c)
 
     def handle_string_end(self):
         self.current_thing = "".join(self.current_thing)
@@ -419,3 +423,65 @@ def marshal(json):
     p = Parser()
     p.parse(json, handler)
     return handler.current_thing
+
+
+def unmarshal(obj):
+    def unmarshal_list(lst):
+        yield '['
+        if len(lst) > 0:
+            for elt in unmarshal(lst[0]):
+                yield elt
+            for elt in lst[1:]:
+                yield ','
+                for elt2 in unmarshal(elt):
+                    yield elt2
+        yield ']'
+
+    def unmarshal_dict(dict_):
+        yield '{'
+        keylist = dict_.keys()
+        if len(keylist) > 0:
+            for k in unmarshal(keylist[0]):
+                yield k
+            yield ':'
+            for v in unmarshal(dict_[keylist[0]]):
+                yield v
+            for k in keylist[1:]:
+                yield ','
+                for k_elt in unmarshal(k):
+                    yield k_elt
+                yield ':'
+                for v in unmarshal(dict_[k]):
+                    yield v
+        yield '}'
+
+    def unmarshal_number(num):
+        yield str(num)
+
+    def unmarshal_string(str_):
+        yield '"'
+        yield str_
+        yield '"'
+
+    if isinstance(obj, [].__class__):
+        return unmarshal_list(obj)
+    elif isinstance(obj, {}.__class__):
+        return unmarshal_dict(obj)
+    elif isinstance(obj, ''.__class__):
+        return unmarshal_string(obj)
+    elif obj is False:
+        def _false():
+            yield 'false'
+        return _false()
+    elif obj is True:
+        def _true():
+            yield 'true'
+        return _true()
+    elif obj is None:
+        def _null():
+            yield 'null'
+        return _null()
+    elif isinstance(obj, int) or isinstance(obj, float):
+        return unmarshal_number(obj)
+    else:
+        raise Exception("Unexpected object %s" % repr(obj))
