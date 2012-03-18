@@ -63,3 +63,8 @@ class UnmarshalTests(TestCase):
                     ['date', datetime.datetime(2012, 3, 17)],
                     type_handler=handle_custom_json)),
             '["date",@D:2012-03-17]')
+
+    def test_utf8(self):
+        eq_(''.join(flojay.unmarshal(
+                    ['Hern\xe1n'])),
+            '["Hern\xe1n"]')

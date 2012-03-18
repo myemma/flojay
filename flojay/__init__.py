@@ -482,6 +482,11 @@ def unmarshal(obj, type_handler=None):
         yield str(str_)
         yield '"'
 
+    def unmarshal_unicode(str_):
+        yield '"'
+        yield str(str_.encode('utf-8'))
+        yield '"'
+
     if type_handler:
         match, str_ = type_handler(obj)
         if match:
@@ -492,9 +497,11 @@ def unmarshal(obj, type_handler=None):
         return unmarshal_list(obj)
     elif isinstance(obj, {}.__class__):
         return unmarshal_dict(obj)
-    elif isinstance(obj, ''.__class__) or \
-            isinstance(obj, u''.__class__):
+    elif isinstance(obj, ''.__class__):
         return unmarshal_string(obj)
+    elif isinstance(obj, u''.__class__):
+        return unmarshal_unicode(obj)
+
     elif obj is False:
         def _false():
             yield 'false'
