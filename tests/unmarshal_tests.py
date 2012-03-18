@@ -26,3 +26,40 @@ class UnmarshalTests(TestCase):
     def test_true_false_null(self):
         eq_(''.join(flojay.unmarshal([True, False, None])), \
                 '[true,false,null]')
+
+    def test_longs(self):
+        result = ''.join(flojay.unmarshal([100L]))
+        eq_(result, '[100]')
+
+    def test_unicode(self):
+        result = ''.join(flojay.unmarshal([u'test']))
+        eq_(result, '["test"]')
+        eq_(result, str(result))
+
+    def test_generator(self):
+        def empty():
+            if False is True:
+                yield "Impossible!"
+
+        def generator():
+            yield 1
+            yield 2
+            yield ['a', 'b', 'c']
+
+        eq_(''.join(flojay.unmarshal(empty())), '[]')
+        eq_(''.join(flojay.unmarshal([generator(), 3])),
+            '[[1,2,["a","b","c"]],3]')
+
+    def test_custom_object_handlerer(self):
+        import datetime
+
+        def handle_custom_json(obj):
+            if isinstance(obj, datetime.datetime):
+                return (True, obj.strftime('@D:%Y-%m-%d'))
+            else:
+                return (False, None)
+
+        eq_(''.join(flojay.unmarshal(
+                    ['date', datetime.datetime(2012, 3, 17)],
+                    type_handler=handle_custom_json)),
+            '["date",@D:2012-03-17]')

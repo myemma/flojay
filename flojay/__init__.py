@@ -1,4 +1,6 @@
 import string
+import types
+import functools
 
 number_chars = set(string.digits)
 
@@ -425,15 +427,32 @@ def marshal(json):
     return handler.current_thing
 
 
-def unmarshal(obj):
+def unmarshal(obj, type_handler=None):
+    recurse = functools.partial(unmarshal, type_handler=type_handler)
+
+    def unmarshal_gen(gen):
+        yield '['
+        try:
+            g = gen.next()
+            for elt in recurse(g):
+                yield elt
+            for g in gen:
+                yield ','
+                for elt in recurse(g):
+                    yield elt
+        except StopIteration:
+            pass
+
+        yield ']'
+
     def unmarshal_list(lst):
         yield '['
         if len(lst) > 0:
-            for elt in unmarshal(lst[0]):
+            for elt in recurse(lst[0]):
                 yield elt
             for elt in lst[1:]:
                 yield ','
-                for elt2 in unmarshal(elt):
+                for elt2 in recurse(elt):
                     yield elt2
         yield ']'
 
@@ -441,17 +460,17 @@ def unmarshal(obj):
         yield '{'
         keylist = dict_.keys()
         if len(keylist) > 0:
-            for k in unmarshal(keylist[0]):
+            for k in recurse(keylist[0]):
                 yield k
             yield ':'
-            for v in unmarshal(dict_[keylist[0]]):
+            for v in recurse(dict_[keylist[0]]):
                 yield v
             for k in keylist[1:]:
                 yield ','
-                for k_elt in unmarshal(k):
+                for k_elt in recurse(k):
                     yield k_elt
                 yield ':'
-                for v in unmarshal(dict_[k]):
+                for v in recurse(dict_[k]):
                     yield v
         yield '}'
 
@@ -460,9 +479,15 @@ def unmarshal(obj):
 
     def unmarshal_string(str_):
         yield '"'
-        yield str_
+        yield str(str_)
         yield '"'
 
+    if type_handler:
+        match, str_ = type_handler(obj)
+        if match:
+            return str_
+    if type(obj) is types.GeneratorType:
+        return unmarshal_gen(obj)
     if isinstance(obj, [].__class__):
         return unmarshal_list(obj)
     elif isinstance(obj, {}.__class__):
@@ -482,7 +507,9 @@ def unmarshal(obj):
         def _null():
             yield 'null'
         return _null()
-    elif isinstance(obj, int) or isinstance(obj, float):
+    elif isinstance(obj, int) or \
+            isinstance(obj, float) or \
+            isinstance(obj, long):
         return unmarshal_number(obj)
     else:
         raise Exception("Unexpected object %s" % repr(obj))
