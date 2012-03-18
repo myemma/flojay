@@ -65,10 +65,19 @@ class UnmarshalTests(TestCase):
             '["date",@D:2012-03-17]')
 
     def test_string_escape(self):
-        s = '"The Lottery" by Shirley Jackson'
+        s = '"A Good Man Is Hard To Find" by Flannery O\'Connor'
 
         eq_(''.join(flojay.unmarshal([s])),
-            '["\\"The Lottery\\" by Shirley Jackson"]')
+            '["\\"A Good Man Is Hard To Find\\" by Flannery O\'Connor"]')
+
+        s = 'C:\DOS>'
+        eq_(''.join(flojay.unmarshal([s])),
+            '["C:\\\\DOS>"]')
+
+        s = "I have eaten\nthe plums\nthat were in\n..."
+        print s
+        eq_(''.join(flojay.unmarshal([s])),
+            '["I have eaten\\nthe plums\\nthat were in\\n..."]')
 
     def test_utf8(self):
         eq_(''.join(flojay.unmarshal(

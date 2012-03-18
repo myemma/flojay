@@ -421,7 +421,15 @@ class MarshallEventHandler(object):
 
 
 def str_escape(s):
-    return s.replace('"', '\\"')
+    # This is starting to look like a
+    # lot of string processing.
+    # What is the better way?
+    # Also, there are more control characters.
+    return s.replace('\\', '\\\\').\
+        replace('"', '\\"').\
+        replace("\n", '\\n').\
+        replace("\r", '\\r').\
+        replace("\t", '\\t')
 
 
 def marshal(json):
