@@ -420,6 +420,10 @@ class MarshallEventHandler(object):
         self.container = self.parents.pop()
 
 
+def str_escape(s):
+    return s.replace('"', '\\"')
+
+
 def marshal(json):
     handler = MarshallEventHandler()
     p = Parser()
@@ -498,9 +502,9 @@ def unmarshal(obj, type_handler=None):
     elif isinstance(obj, {}.__class__):
         return unmarshal_dict(obj)
     elif isinstance(obj, ''.__class__):
-        return unmarshal_string(obj)
+        return unmarshal_string(str_escape(obj))
     elif isinstance(obj, u''.__class__):
-        return unmarshal_unicode(obj)
+        return unmarshal_unicode(str_escape(obj))
 
     elif obj is False:
         def _false():

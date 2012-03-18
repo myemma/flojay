@@ -64,6 +64,12 @@ class UnmarshalTests(TestCase):
                     type_handler=handle_custom_json)),
             '["date",@D:2012-03-17]')
 
+    def test_string_escape(self):
+        s = '"The Lottery" by Shirley Jackson'
+
+        eq_(''.join(flojay.unmarshal([s])),
+            '["\\"The Lottery\\" by Shirley Jackson"]')
+
     def test_utf8(self):
         eq_(''.join(flojay.unmarshal(
                     ['Hern\xe1n'])),
