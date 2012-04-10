@@ -1,8 +1,7 @@
 import string
 import types
 import functools
-
-number_chars = set(string.digits)
+from json.encoder import encode_basestring_ascii
 
 
 class SyntaxError(Exception):
@@ -420,18 +419,6 @@ class MarshallEventHandler(object):
         self.container = self.parents.pop()
 
 
-def str_escape(s):
-    # This is starting to look like a
-    # lot of string processing.
-    # What is the better way?
-    # Also, there are more control characters.
-    return s.replace('\\', '\\\\').\
-        replace('"', '\\"').\
-        replace("\n", '\\n').\
-        replace("\r", '\\r').\
-        replace("\t", '\\t')
-
-
 def marshal(json):
     handler = MarshallEventHandler()
     p = Parser()
@@ -490,14 +477,10 @@ def unmarshal(obj, type_handler=None):
         yield str(num)
 
     def unmarshal_string(str_):
-        yield '"'
         yield str(str_)
-        yield '"'
 
     def unmarshal_unicode(str_):
-        yield '"'
         yield str(str_.encode('utf-8'))
-        yield '"'
 
     if type_handler:
         match, str_ = type_handler(obj)
@@ -510,9 +493,9 @@ def unmarshal(obj, type_handler=None):
     elif isinstance(obj, {}.__class__):
         return unmarshal_dict(obj)
     elif isinstance(obj, ''.__class__):
-        return unmarshal_string(str_escape(obj))
+        return unmarshal_string(encode_basestring_ascii(obj))
     elif isinstance(obj, u''.__class__):
-        return unmarshal_unicode(str_escape(obj))
+        return unmarshal_unicode(encode_basestring_ascii(obj))
 
     elif obj is False:
         def _false():

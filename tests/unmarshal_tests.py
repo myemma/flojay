@@ -6,9 +6,7 @@ class UnmarshalTests(TestCase):
     def test_unmarshal(self):
         gen = flojay.unmarshal(['a'])
         eq_(gen.next(), '[')
-        eq_(gen.next(), '"')
-        eq_(gen.next(), 'a')
-        eq_(gen.next(), '"')
+        eq_(gen.next(), '"a"')
         eq_(gen.next(), ']')
 
     def test_unmarshal_nested_array(self):
