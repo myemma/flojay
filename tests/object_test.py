@@ -63,6 +63,38 @@ class ObjectTest(TestCase):
              "handle_object_value_end",
              "handle_object_end"])
 
+    def test_nested_objs(self):
+        p = flojay.Parser()
+        p.parse('{"b":', self)
+        p.parse('{"a"', self)
+        p.parse(': 1', self)
+        p.parse('}', self)
+        p.parse('}', self)
+        eq_(self.called_methods,
+            ["handle_object_begin",
+             "handle_object_key_begin",
+             "handle_string_begin",
+             "handle_string_character",
+             "handle_string_end",
+             "handle_object_key_end",
+             "handle_object_value_begin",
+             "handle_object_begin",
+             "handle_object_key_begin",
+             "handle_string_begin",
+             "handle_string_character",
+             "handle_string_end",
+             "handle_object_key_end",
+             "handle_object_value_begin",
+             "handle_number_begin",
+             "handle_number_character",
+             "handle_number_end",
+             "handle_object_value_end",
+             "handle_object_end",
+             "handle_object_value_end",
+             "handle_object_end"
+         ])
+
+
     def test_syntax_errors(self):
         for s in ['{a:1}', '{"a":}', '{"a" 1}', '{"a": 1,}', '{"a": 1, 2}', '{"a": 1 "b": 2}']:
             def tst():

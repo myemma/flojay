@@ -1,6 +1,8 @@
 import flojay
 from unittest import TestCase
 from nose.tools import eq_, assert_raises
+from StringIO import StringIO
+
 
 
 class StringTests(TestCase):
@@ -57,3 +59,23 @@ class StringTests(TestCase):
         p.parse(s[0:2], self)
         p.parse(s[2:-1], self)
         eq_(self.buf, "abcde")
+
+    def test_some_other_thing(self):
+        p = flojay.Parser()
+        h = flojay.MarshallEventHandler()
+        x = StringIO('[{"fields": {"first_name": "Robert", "last_name": "Church"}, "email": "rchurch@myemma.com"}, {"fields": {"first_name": "Hern\xc3n", "last_name": "Ciudad"}, "email": "hciudad@myemma.com"}]')
+
+        while 1:
+            buf = x.read(1)
+            if not buf:
+                break
+            p.parse(buf, h)
+        a = h.current_thing
+        eq_(a,
+            [dict(email=u'rchurch@myemma.com',
+                  fields=dict(last_name='Church',
+                              first_name='Robert')),
+             dict(email=u'hciudad@myemma.com',
+                  fields=dict(last_name='Ciudad',
+                              first_name='Hern\xc3n'))])
+        

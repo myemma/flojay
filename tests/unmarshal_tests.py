@@ -79,5 +79,5 @@ class UnmarshalTests(TestCase):
 
     def test_utf8(self):
         eq_(''.join(flojay.unmarshal(
-                    ['Hern\xe1n'])),
-            '["Hern\xe1n"]')
+                    [u'Hern\xc3n'])),
+            '["Hern\u00c3n"]')

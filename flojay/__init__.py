@@ -153,6 +153,7 @@ def parse_array_state(parser, buf, handler):
 
 
 def parse_array_delim_state(parser, buf, handler):
+    buf.skip_whitespace()
     c = buf.peek()
     if c == ',':
         raise SyntaxError
@@ -164,15 +165,15 @@ def parse_array_delim_state(parser, buf, handler):
 def parse_array_element_state(parser, buf, handler):
     buf.skip_whitespace()
     c = buf.peek()
+    handler.handle_array_element_end()
     if c == ']':
-        handler.handle_array_element_end()
         parser.leave_state()
     elif c == ',':
-        handler.handle_array_element_end()
         buf.take()
         parser.switch_state(parse_array_delim_state)
     else:
         raise SyntaxError
+
 
 def parse_object_state(parser, buf, handler):
     buf.skip_whitespace()
@@ -184,6 +185,7 @@ def parse_object_state(parser, buf, handler):
     else:
         parser.enter_state(parse_object_key_state)
         handler.handle_object_key_begin()
+
 
 def parse_object_key_state(parser, buf, handler):
     buf.skip_whitespace()
@@ -205,7 +207,8 @@ def parse_object_pair_delim_state(parser, buf, handler):
 
 
 def parse_object_value_prelim_state(parser, buf, handler):
-    if buf.peek() in ',}':
+    c = buf.peek()
+    if c in ',}':
         raise SyntaxError
     parser.switch_state(parse_object_value_state)
 
@@ -224,6 +227,10 @@ def parse_object_value_state(parser, buf, handler):
         parse_toplevel_state(parser, buf, handler)
 
 
+class FlojayBufferEmptyException(Exception):
+    pass
+
+
 class Buffer(object):
     def __init__(self, string):
         self.pointer = 0
@@ -231,7 +238,10 @@ class Buffer(object):
         self.buffer_length = len(self.buf)
 
     def peek(self):
-        return self.buf[self.pointer]
+        if self.pointer < len(self.buf):
+            return self.buf[self.pointer]
+        else:
+            raise FlojayBufferEmptyException()
 
     def take_while(self, whitelist):
         ptr = self.pointer
@@ -250,14 +260,20 @@ class Buffer(object):
         return self.take_n(ptr - self.pointer)
 
     def take_n(self, n):
-        value = self.buf[self.pointer:self.pointer + n]
-        self.pointer += n
-        return value
+        if self.pointer < len(self.buf):
+            value = self.buf[self.pointer:self.pointer + n]
+            self.pointer += n
+            return value
+        else:
+            raise FlojayBufferEmptyException()
 
     def take(self):
-        value = self.buf[self.pointer]
-        self.pointer += 1
-        return value
+        if self.pointer < len(self.buf):
+            value = self.buf[self.pointer]
+            self.pointer += 1
+            return value
+        else:
+            raise FlojayBufferEmptyException()
 
     whitespace = set(string.whitespace)
 
@@ -300,8 +316,11 @@ class Parser(object):
 
     def parse(self, json, handler):
         buf = Buffer(json)
-        while(buf.pointer < buf.buffer_length):
-            self.states[self.state_pointer - 1](self, buf, handler)
+        try:
+            while(buf.pointer < buf.buffer_length):
+                self.states[self.state_pointer - 1](self, buf, handler)
+        except FlojayBufferEmptyException:
+            pass
 
     def switch_state(self, state_func):
         self.states[self.state_pointer - 1] = state_func
