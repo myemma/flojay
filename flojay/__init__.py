@@ -455,7 +455,7 @@ def unmarshal(obj, type_handler=None):
             for elt in recurse(g):
                 yield elt
             for g in gen:
-                yield ','
+                yield ', '
                 for elt in recurse(g):
                     yield elt
         except StopIteration:
@@ -469,7 +469,7 @@ def unmarshal(obj, type_handler=None):
             for elt in recurse(lst[0]):
                 yield elt
             for elt in lst[1:]:
-                yield ','
+                yield ', '
                 for elt2 in recurse(elt):
                     yield elt2
         yield ']'
@@ -480,14 +480,14 @@ def unmarshal(obj, type_handler=None):
         if len(keylist) > 0:
             for k in recurse(keylist[0]):
                 yield k
-            yield ':'
+            yield ': '
             for v in recurse(dict_[keylist[0]]):
                 yield v
             for k in keylist[1:]:
-                yield ','
+                yield ', '
                 for k_elt in recurse(k):
                     yield k_elt
-                yield ':'
+                yield ': '
                 for v in recurse(dict_[k]):
                     yield v
         yield '}'

@@ -11,19 +11,19 @@ class UnmarshalTests(TestCase):
 
     def test_unmarshal_nested_array(self):
         gen = flojay.unmarshal(['a', ['b', 1.0, ['d']]])
-        eq_(''.join(gen), '["a",["b",1.0,["d"]]]')
+        eq_(''.join(gen), '["a", ["b", 1.0, ["d"]]]')
         eq_(''.join(flojay.unmarshal([])), '[]')
 
     def test_dict(self):
         eq_(''.join(flojay.unmarshal({})), '{}')
         gen = flojay.unmarshal({u'key': 3.14})
-        eq_(''.join(gen), '{"key":3.14}')
+        eq_(''.join(gen), '{"key": 3.14}')
         gen = flojay.unmarshal({'a': 1, 'b': 2})
-        eq_(''.join(gen), '{"a":1,"b":2}')
+        eq_(''.join(gen), '{"a": 1, "b": 2}')
 
     def test_true_false_null(self):
         eq_(''.join(flojay.unmarshal([True, False, None])), \
-                '[true,false,null]')
+                '[true, false, null]')
 
     def test_longs(self):
         result = ''.join(flojay.unmarshal([100L]))
@@ -46,7 +46,7 @@ class UnmarshalTests(TestCase):
 
         eq_(''.join(flojay.unmarshal(empty())), '[]')
         eq_(''.join(flojay.unmarshal([generator(), 3])),
-            '[[1,2,["a","b","c"]],3]')
+            '[[1, 2, ["a", "b", "c"]], 3]')
 
     def test_custom_object_handlerer(self):
         import datetime
@@ -60,7 +60,7 @@ class UnmarshalTests(TestCase):
         eq_(''.join(flojay.unmarshal(
                     ['date', datetime.datetime(2012, 3, 17)],
                     type_handler=handle_custom_json)),
-            '["date",@D:2012-03-17]')
+            '["date", @D:2012-03-17]')
 
     def test_string_escape(self):
         s = '"A Good Man Is Hard To Find" by Flannery O\'Connor'
