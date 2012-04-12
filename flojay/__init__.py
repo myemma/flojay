@@ -492,45 +492,33 @@ def unmarshal(obj, type_handler=None):
                     yield v
         yield '}'
 
-    def unmarshal_number(num):
-        yield str(num)
-
-    def unmarshal_string(str_):
-        yield str(str_)
-
-    def unmarshal_unicode(str_):
-        yield str(str_.encode('utf-8'))
-
+    match = None
     if type_handler:
         match, str_ = type_handler(obj)
-        if match:
-            return str_
-    if type(obj) is types.GeneratorType:
-        return unmarshal_gen(obj)
-    if isinstance(obj, [].__class__):
-        return unmarshal_list(obj)
-    elif isinstance(obj, {}.__class__):
-        return unmarshal_dict(obj)
-    elif isinstance(obj, ''.__class__):
-        return unmarshal_string(encode_basestring_ascii(obj))
-    elif isinstance(obj, u''.__class__):
-        return unmarshal_unicode(encode_basestring_ascii(obj))
-
+    if match:
+        yield str_
+    elif isinstance(obj, basestring):
+        yield encode_basestring_ascii(obj)
+    elif isinstance(obj, unicode):
+        yield encode_basestring_ascii(obj.encode('utf-8'))
     elif obj is False:
-        def _false():
-            yield 'false'
-        return _false()
+        yield 'false'
     elif obj is True:
-        def _true():
-            yield 'true'
-        return _true()
+        yield 'true'
     elif obj is None:
-        def _null():
-            yield 'null'
-        return _null()
-    elif isinstance(obj, int) or \
-            isinstance(obj, float) or \
-            isinstance(obj, long):
-        return unmarshal_number(obj)
+        yield 'null'
+    elif isinstance(obj, (int, float, long)):
+        yield str(obj)
+
     else:
-        raise Exception("Unexpected object %s" % repr(obj))
+        chunks = []
+        if type(obj) is types.GeneratorType:
+            chunks = unmarshal_gen(obj)
+        elif isinstance(obj, (list, tuple)):
+            chunks = unmarshal_list(obj)
+        elif isinstance(obj, dict):
+            chunks = unmarshal_dict(obj)
+        else:
+            raise Exception("Unexpected object %s" % repr(obj))
+        for chunk in chunks:
+            yield chunk
