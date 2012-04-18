@@ -5,7 +5,6 @@ from nose.tools import eq_, raises
 
 class UnmarshalTests(TestCase):
     def encode(self, it):
-        print it
         return flojay.JSONEncoder().iterencode(it)
 
     def test_unmarshal(self):
@@ -93,7 +92,6 @@ class UnmarshalTests(TestCase):
             '["C:\\\\DOS>"]')
 
         s = "I have eaten\nthe plums\nthat were in\n..."
-        print s
         eq_(''.join(self.encode([s])),
             '["I have eaten\\nthe plums\\nthat were in\\n..."]')
 
