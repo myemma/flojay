@@ -106,7 +106,7 @@ class UnmarshalTests(TestCase):
 
     def test_utf8(self):
         eq_(
-            ''.join(flojay.JSONEncoder(ensure_ascii=False).\
+            ''.join(flojay.JSONEncoder().\
             iterencode([u'Hern\xc3n'])),
             '["' + u'Hern\xc3n'.encode('utf8') + '"]'
         )
