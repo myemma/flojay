@@ -168,7 +168,7 @@ yajl_do_finish(yajl_handle hand)
         case yajl_state_parse_complete:
             return yajl_status_ok;
         default:
-            if (!(hand->flags & yajl_allow_partial_values))
+          if (!(hand->flags & yajl_allow_partial_values))
             {
                 yajl_bs_set(hand->stateStack, yajl_state_parse_error);
                 hand->parseError = "premature EOF";
