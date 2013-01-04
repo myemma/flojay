@@ -571,7 +571,7 @@ static int flojay_string_callback(void * self,
                                   const unsigned char * str, size_t len) {
 
   PyObject * python_string = PyUnicode_Decode((char *) str, len,
-                                              ENCODING, 'strict');
+                                              ENCODING, "strict");
   
   if(NULL == python_string) {
     return 0;
