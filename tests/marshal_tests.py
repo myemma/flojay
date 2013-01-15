@@ -64,9 +64,6 @@ class EventBasedParserTests(TestCase):
         p = flojay.JSONEventParser(self)
         p.parse('[]')
 
-    def test_incomplete_input(self):
-        pass
-
     @raises(ZeroDivisionError)
     def test_exceptions_from_callbacks_are_propogated(self):
         flojay.JSONEventParser(CallbacksRaiseAnException()).\
