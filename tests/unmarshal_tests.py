@@ -95,20 +95,11 @@ class UnmarshalTests(TestCase):
         eq_(''.join(self.encode([s])),
             '["I have eaten\\nthe plums\\nthat were in\\n..."]')
 
-    # I want to implement this sometime, but it's not really
-    # necessary.
-    # def test_ascii(self):
-    #     eq_(
-    #         ''.join(flojay.JSONEncoder(ensure_ascii=True).\
-    #         iterencode([u'Hern\xc3n'])),
-    #         '["Hern\u00c3n"]'
-    #     )
-
     def test_utf8(self):
         eq_(
             ''.join(flojay.JSONEncoder().\
-            iterencode([u'Hern\xc3n'])),
-            '["' + u'Hern\xc3n'.encode('utf8') + '"]'
+            iterencode([u'Ren\xc3e'])),
+            '["' + u'Ren\xc3e'.encode('utf8') + '"]'
         )
 
     def test_beautify(self):

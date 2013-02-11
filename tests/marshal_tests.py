@@ -38,8 +38,8 @@ class EventBasedParserTests(TestCase):
     def test_string_callback(self):
         callbacks = UnaryCallbacks()
         p = flojay.JSONEventParser(callbacks)
-        p.parse(u'["String", "Hern\xc3n"]')
-        eq_(callbacks.buf, [u"String", u"Hern\xc3n"])
+        p.parse(u'["String", "Ren\xc3e"]')
+        eq_(callbacks.buf, [u"String", u"Ren\xc3e"])
 
     def test_start_end_map(self):
         callbacks = MapCallbacks()
@@ -50,8 +50,8 @@ class EventBasedParserTests(TestCase):
     def test_map_key(self):
         callbacks = MapCallbacks()
         p = flojay.JSONEventParser(callbacks)
-        p.parse(u'{"Hern\xc3n": 119}')
-        eq_(callbacks.buf, ['{', u"Hern\xc3n", 119, '}'])
+        p.parse(u'{"Ren\xc3e": 119}')
+        eq_(callbacks.buf, ['{', u"Ren\xc3e", 119, '}'])
 
     def test_array_start_end(self):
         callbacks = ArrayCallbacks()
