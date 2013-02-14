@@ -1,7 +1,7 @@
 # flojay 
 
 flojay provides incremental serialization of Python data structures as
-JSON documents, and an event-based JSON parser to allow for incremtnal
+JSON documents, and an event-based JSON parser to allow for incremental
 deserialization. It can be used to create and process JSON documents
 that are larger than working memory.
 
