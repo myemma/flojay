@@ -18,12 +18,15 @@ append_value(flojay_PythonDecoderCallbacks_object * self,
              PyObject * value)
 {
   PyObject * current_container;
+
   if(Py_None == self->root) {
+    Py_INCREF(value);
     self->root = value;
-  } else if(NULL != self->map_key) {
+  } else if(Py_None != self->map_key) {
     current_container = PyList_GetItem(self->containers, 0);
     PyDict_SetItem(current_container, self->map_key, value);
-    self->map_key = NULL;
+    Py_DECREF(self->map_key);
+    self->map_key = Py_None;
   } else {
     current_container = PyList_GetItem(self->containers, 0);
     PyList_Append(current_container, value);
@@ -37,11 +40,21 @@ flojay_PythonDecoderCallbacks_init(PyObject * pyself)
   self->root = Py_None;
   self->map_key = Py_None;
   self->containers = PyList_New(0);
+  Py_INCREF(self->containers);
   return 0;
 }
 
+static void
+flojay_PythonDecoderCallbacks_dealloc(PyObject * pyself)
+{
+  flojay_PythonDecoderCallbacks_object * self = _self(pyself);
+  Py_XDECREF(self->root);
+  Py_XDECREF(self->map_key);
+  Py_XDECREF(self->containers);
+}
+
 static PyObject *
-flojay_PythonDecoderCallbacks_root(PyObject * pyself)
+flojay_PythonDecoderCallbacks_get_root(PyObject * pyself)
 {
   return _self(pyself)->root;
 }
@@ -112,6 +125,7 @@ flojay_PythonDecoderCallbacks_map_key(PyObject * pyself, PyObject * args)
   if(!PyArg_ParseTuple(args, "O", &map_key))
     return 0;
 
+  Py_INCREF(map_key);
   _self(pyself)->map_key = map_key;
 
   return Py_None;
@@ -129,12 +143,6 @@ static PyMethodDef flojay_PythonDecoderCallbacks_methods[] = {
     "__init__",
     (PyCFunction)flojay_PythonDecoderCallbacks_init, 1,
     "Init!"
-  },
-  {
-    "root",
-    (PyCFunction)flojay_PythonDecoderCallbacks_root, 1,
-    "Return the root object of the Python object graph produced by the "
-    "parser."
   },
   {
     "handle_number",
@@ -184,13 +192,24 @@ static PyMethodDef flojay_PythonDecoderCallbacks_methods[] = {
   {NULL}  /* Sentinel */
 };
 
+static PyGetSetDef flojay_PythonDecoderCallbacks_getset[] = {
+    {"root", 
+     (getter)flojay_PythonDecoderCallbacks_get_root,
+     (setter)NULL,
+     "The root object of the Python object graph produced by the "
+     "parser.",
+     NULL},
+    {NULL}  /* Sentinel */
+};
+
+
 static PyTypeObject flojay_PythonDecoderCallbacks_type = {
     PyObject_HEAD_INIT(NULL)
     0,                         /*ob_size*/
     "flojay.PythonDecoderCallbacks", /*tp_name*/
     sizeof(flojay_PythonDecoderCallbacks_object), /*tp_basicsize*/
     0,                         /*tp_itemsize*/
-    0,                         /*tp_dealloc*/
+    (destructor)flojay_PythonDecoderCallbacks_dealloc, /*tp_dealloc*/
     0,                         /*tp_print*/
     0,                         /*tp_getattr*/
     0,                         /*tp_setattr*/
@@ -215,7 +234,7 @@ static PyTypeObject flojay_PythonDecoderCallbacks_type = {
     0,		               /* tp_iternext */
     flojay_PythonDecoderCallbacks_methods,  /* tp_methods */
     0,                         /* tp_members */
-    0,                         /* tp_getset */
+    flojay_PythonDecoderCallbacks_getset,   /* tp_getset */
     0,                         /* tp_base */
     0,                         /* tp_dict */
     0,                         /* tp_descr_get */
