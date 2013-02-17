@@ -52,6 +52,8 @@ flojay_generator_new(PyTypeObject * type, PyObject * args, PyObject * kwds)
   return (PyObject *) self;
 }
 
+void init_flojay_decoder_callbacks(PyObject * module);
+
 static
 int _flojay_handle_yajl_error(yajl_gen_status status)
 {
@@ -775,6 +777,8 @@ initflojay(void)
     PyModule_AddObject(m, "JSONEncoder", (PyObject *)&flojay_JSONEncoderType);
     PyModule_AddObject(m, "JSONEventParser", 
                        (PyObject *)&flojay_JSONEventParserType);
+
+    init_flojay_decoder_callbacks(m);
 
     allocate_method_names();
 }

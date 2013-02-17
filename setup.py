@@ -11,7 +11,8 @@ flojay = Extension('flojay',
                         ('MINOR_VERSION', '1')],
                     extra_compile_args=['--std=c99'],
                     include_dirs=['flojay/lloyd-yajl/src'],
-                    sources=yajl_sources + ['flojay/flojay.c'])
+                    sources=yajl_sources + ['flojay/flojay.c',
+                                            'flojay/decoder_callbacks.c'])
 
 
 setup(name='flojay',
