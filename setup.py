@@ -2,13 +2,13 @@
 from setuptools import setup, Extension
 from distutils.core import setup
 import os
-from fence import __version__
+from flojay import __version__
 
 yajl_sources = ['flojay/lloyd-yajl/src/' + file_ for file_ in \
     ('yajl.c', 'yajl_gen.c', 'yajl_alloc.c', 'yajl_lex.c', 'yajl_tree.c', \
      'yajl_encode.c', 'yajl_version.c', 'yajl_buf.c', 'yajl_parser.c')]
 
-major_minor = '.'.split(__version__)
+major_minor = __version__.split('.')
 
 flojay = Extension('flojay',
                     define_macros=[
@@ -28,8 +28,7 @@ setup(
     url = "http://github/myemma/flojay/",
     ext_modules=[flojay],
     packages=['flojay'],
-    install_requires=[
-        'nose==1.1.2',
+    install_requires=['nose==1.1.2'],
     keywords = ["json", "stream", "ajax", "webapp", "website", "data", "messaging"],
     classifiers = [
         "Programming Language :: Python",
@@ -41,5 +40,5 @@ setup(
         "Topic :: Software Development :: Libraries :: Python Modules",
         "Topic :: Internet",
         ],
-    ])
+    )
 
