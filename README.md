@@ -49,4 +49,8 @@ copy of which is included in this distribution.
             break
         parser.parse(row)
         print "The current total is: %d" % (callbacks.sum,)
-    
+
+
+# Thank also to
+
+Lloyd Hilaiel -- creator of yajl -- https://github.com/lloyd
