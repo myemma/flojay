@@ -1,38 +1,21 @@
 #!/usr/bin/env python
 from setuptools import setup, Extension
-import os
-
-"""Flojay json streaming module.
-
-For more information, see: http://github.com/myemma/flojay/
-"""
-
-# the Canonical way ;)
-version_info = (0, 1, 0, 'alpha', 0)
-
-__version__ = '.'.join(str(i) for i in version_info[0:3])
-#version_string = __version__
-
-#from flojay import __version__
 
 yajl_sources = ['flojay/lloyd-yajl/src/' + file_ for file_ in \
     ('yajl.c', 'yajl_gen.c', 'yajl_alloc.c', 'yajl_lex.c', 'yajl_tree.c', \
      'yajl_encode.c', 'yajl_version.c', 'yajl_buf.c', 'yajl_parser.c')]
 
-major_minor = __version__.split('.')
-
 flojay_extension = Extension('flojay',
                     define_macros=[
-                        ('MAJOR_VERSION', major_minor[0]),
-                        ('MINOR_VERSION', major_minor[1])],
+                        ('MAJOR_VERSION', '0'),
+                        ('MINOR_VERSION', '1')],
                     extra_compile_args=['--std=c99'],
                     include_dirs=['flojay/lloyd-yajl/src'],
                     sources=yajl_sources + ['flojay/flojay.c'])
 
-
 setup(
     name='flojay',
-    version=__version__,
+    version='0.1',
     description='Streaming and event-based JSON parser based on yajl',
     author='Robert Church',
     author_email='rchurch@myemma.com',
