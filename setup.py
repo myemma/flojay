@@ -10,7 +10,7 @@ yajl_sources = ['flojay/lloyd-yajl/src/' + file_ for file_ in \
 
 major_minor = __version__.split('.')
 
-flojay = Extension('flojay',
+flojay_extension = Extension('flojay',
                     define_macros=[
                         ('MAJOR_VERSION', major_minor[0]),
                         ('MINOR_VERSION', major_minor[1])],
@@ -26,7 +26,7 @@ setup(
     author='Robert Church',
     author_email='rchurch@myemma.com',
     url = "http://github/myemma/flojay/",
-    ext_modules=[flojay],
+    ext_modules=[flojay_extension],
     packages=['flojay'],
     install_requires=['nose==1.1.2'],
     keywords = ["json", "stream", "ajax", "webapp", "website", "data", "messaging"],
