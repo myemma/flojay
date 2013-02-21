@@ -2,4 +2,4 @@ include *.txt
 include *.md
 include Makefile
 graft flojay
-recursive-include flojay *.c *.h *.py *.txt README *.md BUILDING *.win32 ChangeLog *.cmake *.json *.gold *.sh TODO PKG-INFO *.dxy
+
