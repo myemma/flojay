@@ -1,7 +1,7 @@
 # flojay 
 
 flojay provides incremental serialization of Python data structures as
-JSON documents, and an event-based JSON parser to allow for incremental
+JSON documents, and an event-based JSON parser to allow for incremtnal
 deserialization. It can be used to create and process JSON documents
 that are larger than working memory.
 
@@ -49,8 +49,4 @@ copy of which is included in this distribution.
             break
         parser.parse(row)
         print "The current total is: %d" % (callbacks.sum,)
-
-
-# Thank also to
-
-Lloyd Hilaiel -- creator of yajl -- https://github.com/lloyd
+    
