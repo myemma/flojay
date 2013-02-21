@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 from setuptools import setup, Extension
-from distutils.core import setup
 import os
 from flojay import __version__
 
@@ -10,7 +9,7 @@ yajl_sources = ['flojay/lloyd-yajl/src/' + file_ for file_ in \
 
 major_minor = __version__.split('.')
 
-flojay_extension = Extension('flojay',
+flojay_extension = Extension('flojay_extension',
                     define_macros=[
                         ('MAJOR_VERSION', major_minor[0]),
                         ('MINOR_VERSION', major_minor[1])],
