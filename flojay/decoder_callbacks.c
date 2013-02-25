@@ -2,9 +2,8 @@
 
 typedef struct {
   PyObject_HEAD
-  PyObject * root;
   PyObject * containers;
-  PyObject * map_key;
+  PyObject * map_keys;
 } flojay_PythonDecoderCallbacks_object;
 
 static inline flojay_PythonDecoderCallbacks_object *
@@ -19,17 +18,15 @@ append_value(flojay_PythonDecoderCallbacks_object * self,
 {
   PyObject * current_container;
 
-  if(Py_None == self->root) {
-    Py_INCREF(value);
-    self->root = value;
-  } else if(Py_None != self->map_key) {
+  if(0 != PyList_Size(self->containers)) {
     current_container = PyList_GetItem(self->containers, 0);
-    PyDict_SetItem(current_container, self->map_key, value);
-    Py_DECREF(self->map_key);
-    self->map_key = Py_None;
-  } else {
-    current_container = PyList_GetItem(self->containers, 0);
-    PyList_Append(current_container, value);
+    if(PyDict_Check(current_container)) {
+      PyObject * map_key = PyList_GetItem(self->map_keys, 0);
+      PyDict_SetItem(current_container, map_key, value);
+      PyList_SetSlice(self->map_keys, 0, 1, NULL);
+    } else {
+      PyList_Append(current_container, value);
+    }
   }
 }
 
@@ -37,8 +34,8 @@ static int
 flojay_PythonDecoderCallbacks_init(PyObject * pyself)
 {
   flojay_PythonDecoderCallbacks_object * self = _self(pyself);
-  self->root = Py_None;
-  self->map_key = Py_None;
+  self->map_keys = PyList_New(0);
+  Py_INCREF(self->map_keys);
   self->containers = PyList_New(0);
   Py_INCREF(self->containers);
   return 0;
@@ -48,15 +45,15 @@ static void
 flojay_PythonDecoderCallbacks_dealloc(PyObject * pyself)
 {
   flojay_PythonDecoderCallbacks_object * self = _self(pyself);
-  Py_XDECREF(self->root);
-  Py_XDECREF(self->map_key);
+  Py_XDECREF(self->map_keys);
   Py_XDECREF(self->containers);
 }
 
 static PyObject *
 flojay_PythonDecoderCallbacks_get_root(PyObject * pyself)
 {
-  return _self(pyself)->root;
+  ssize_t len = PyList_Size(_self(pyself)->containers);
+  return PyList_GetItem(_self(pyself)->containers, len - 1);
 }
 
 static PyObject *
@@ -85,14 +82,17 @@ static void
 start_container(flojay_PythonDecoderCallbacks_object * self,
                 PyObject * container)
 {
-  append_value(self, container);
   PyList_Insert(self->containers, 0, container);
 }
 
 static void
 pop_container(flojay_PythonDecoderCallbacks_object * self)
 {
-  PyList_SetSlice(self->containers, 0, 1, NULL);
+  if(PyList_Size(self->containers) > 1) {
+    PyObject * container = PyList_GetItem(self->containers, 0);
+    PyList_SetSlice(self->containers, 0, 1, NULL);
+    append_value(self, container);
+  }
 }
 
 static PyObject *
@@ -125,9 +125,7 @@ flojay_PythonDecoderCallbacks_map_key(PyObject * pyself, PyObject * args)
   if(!PyArg_ParseTuple(args, "O", &map_key))
     return 0;
 
-  Py_INCREF(map_key);
-  _self(pyself)->map_key = map_key;
-
+  PyList_Insert(_self(pyself)->map_keys, 0, map_key);
   return Py_None;
 }
 
