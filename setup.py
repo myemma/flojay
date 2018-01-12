@@ -8,14 +8,14 @@ yajl_sources = ['flojay/lloyd-yajl/src/' + file_ for file_ in \
 flojay = Extension('flojay',
                     define_macros=[
                         ('MAJOR_VERSION', '0'),
-                        ('MINOR_VERSION', '1')],
+                        ('MINOR_VERSION', '2')],
                     extra_compile_args=['--std=c99'],
                     include_dirs=['flojay/lloyd-yajl/src'],
                     sources=yajl_sources + ['flojay/flojay.c'])
 
 
 setup(name='flojay',
-      version='0.1',
+      version='0.2',
       description='Streaming or event-based JSON parser based on yajl',
       author='Robert Church',
       author_email='rchurch@myemma.com',
